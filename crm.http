@@ -1,0 +1,67 @@
+### 名單 CRM smoke test
+@base = http://localhost:1138/api
+
+### 取得全部名單
+GET {{base}}/contacts
+
+### 新增名單
+POST {{base}}/contacts
+Content-Type: application/json
+
+{
+  "name": "王小明",
+  "location": "中壢",
+  "contact": "0912-345-678",
+  "broached": false,
+  "completedStages": [],
+  "followUpFreq": "一週一次"
+}
+
+### 部分更新（inline）
+PATCH {{base}}/contacts/1
+Content-Type: application/json
+
+{
+  "broached": true
+}
+
+### 更新頻率 → 重算下次跟進日
+PATCH {{base}}/contacts/1
+Content-Type: application/json
+
+{
+  "followUpFreq": "兩週一次",
+  "lastFollowUp": "2026-11-07"
+}
+
+### 新增跟進紀錄
+POST {{base}}/contacts/1/logs
+Content-Type: application/json
+
+{
+  "date": "2026-11-07",
+  "content": "電話聊了一陣子，聊到產品心得"
+}
+
+### 取得跟進紀錄
+GET {{base}}/contacts/1/logs
+
+### 進度階段
+GET {{base}}/contact-stages
+
+### 新增階段
+POST {{base}}/contact-stages
+Content-Type: application/json
+
+{
+  "label": "加入"
+}
+
+### 人名選項
+GET {{base}}/contact-options
+
+### 地點選項
+GET {{base}}/contact-locations
+
+### 刪除名單
+DELETE {{base}}/contacts/1

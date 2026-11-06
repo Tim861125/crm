@@ -1,0 +1,106 @@
+@import url('https://fonts.googleapis.com/css2?family=Patrick+Hand&family=LXGW+WenKai+TC:wght@400;700&display=swap');
+@import "tailwindcss";
+@import "@nuxt/ui";
+
+/* 讓所有可點擊的按鈕顯示手指游標（Tailwind preflight 預設是箭號）；停用中的維持 not-allowed */
+button:not(:disabled):not([aria-disabled="true"]) {
+  cursor: pointer;
+}
+
+@theme static {
+  /* 手繪塗鴉風字體：Patrick Hand（英數）+ LXGW 文楷 TC（中文，手寫楷體感） */
+  --font-sans: 'Patrick Hand', 'LXGW WenKai TC', cursive;
+}
+
+/* ── 紙感底色 ─────────────────────────────────────────────── */
+:root {
+  --paper: #faf6ec;
+  --ink: #44403c; /* stone-700 */
+  --ink-strong: #292524;
+  --sketch-line: #57534e; /* stone-600 */
+}
+
+html {
+  background: var(--paper);
+  color: var(--ink);
+  min-height: 100%;
+}
+
+body {
+  /* 紙上淡淡的方格點陣，像筆記本 */
+  background-image:
+    radial-gradient(circle, rgb(87 83 78 / 0.14) 1px, transparent 1px),
+    radial-gradient(circle, rgb(87 83 78 / 0.07) 1px, transparent 1px);
+  background-size: 28px 28px, 28px 28px;
+  background-position: 0 0, 14px 14px;
+}
+
+/* 選取文字用螢光筆感 */
+::selection {
+  background: rgb(250 204 21 / 0.55);
+}
+
+/* ── 手繪元素 ───────────────────────────────────────────────
+   邊框用「不規則四角圓角」模擬手抖的線條；提供多組輪替，避免每張卡片都一模一樣。 */
+
+.sketch-border {
+  border: 2px solid var(--sketch-line);
+}
+
+.sketch-card {
+  background: #fffdf7;
+  border: 2px solid var(--sketch-line);
+  border-radius: 14px 18px 12px 19px / 17px 13px 20px 15px;
+  box-shadow: 2px 3px 0 rgb(41 37 36 / 0.14);
+}
+
+.sketch-card-alt {
+  background: #fffdf7;
+  border: 2px solid var(--sketch-line);
+  border-radius: 18px 13px 19px 14px / 13px 20px 15px 17px;
+  box-shadow: 2px 3px 0 rgb(41 37 36 / 0.14);
+}
+
+/* 小元素用的細抖邊框（徽章、chip） */
+.sketch-chip {
+  border: 1.5px solid var(--sketch-line);
+  border-radius: 10px 14px 9px 13px / 13px 9px 14px 10px;
+}
+
+/* 螢光筆劃過的重點標記 */
+.marker {
+  background: linear-gradient(transparent 52%, rgb(250 204 21 / 0.6) 52%, rgb(250 204 21 / 0.6) 88%, transparent 88%);
+}
+
+/* 螢光筆（粉紅）——給逾期之類警示的小段落用 */
+.marker-red {
+  background: linear-gradient(transparent 52%, rgb(244 114 182 / 0.5) 52%, rgb(244 114 182 / 0.5) 88%, transparent 88%);
+}
+
+/* 手繪圈選（跨在文字外的橢圓）——給頁面標題用 */
+.sketch-oval {
+  position: relative;
+  display: inline-block;
+}
+.sketch-oval::after {
+  content: '';
+  position: absolute;
+  inset: -4px -10px;
+  border: 2.5px solid var(--sketch-line);
+  border-radius: 50% 46% 54% 48% / 58% 52% 50% 56%;
+  transform: rotate(-1deg);
+  pointer-events: none;
+}
+
+/* 表格：虛線格線貼近手繪表格 */
+.sketch-table {
+  border-collapse: separate;
+  border-spacing: 0;
+}
+.sketch-table td,
+.sketch-table th {
+  border-bottom: 1.5px dashed rgb(87 83 78 / 0.5);
+}
+.sketch-table tbody tr:hover td {
+  background: rgb(250 204 21 / 0.12);
+}
