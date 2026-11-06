@@ -38,10 +38,19 @@ const EDITABLE_FIELDS = [
 // 表單草稿：每次「打開 modal」或「換人」時重置為當前資料（比照舊版 open watch 行為）
 const form = ref<Record<string, string>>({})
 
+// USelect（reka）不允許空字串 value —— 空字串會被當成「未選/placeholder」而 throw。
+// 可清空的下拉一律以哨兵代空值（開啟時 '' → NONE、存檔時 NONE/'' → null）。
+const NONE = '__none__'
+const SELECT_FIELDS = new Set(['location', 'friendOf', 'devPartner', 'level', 'followUpFreq'])
+const withNone = (items: { label: string, value: string }[]) => [{ label: '－', value: NONE }, ...items]
+
 watch([open, () => contact.value?.id], ([o]) => {
   if (o && contact.value) {
     form.value = Object.fromEntries(
-      EDITABLE_FIELDS.map(k => [k, contact.value![k as keyof Contact] as string | null ?? ''])
+      EDITABLE_FIELDS.map((k) => {
+        const v = contact.value![k as keyof Contact] as string | null ?? ''
+        return [k, SELECT_FIELDS.has(k) && !v ? NONE : v]
+      })
     )
   }
 })
@@ -51,9 +60,12 @@ const saving = ref(false)
 async function save() {
   const c = contact.value
   if (!c) return
-  // '' → null；後端會重算 nextFollowUp
+  // '' / NONE → null；後端會重算 nextFollowUp
   const body = Object.fromEntries(
-    EDITABLE_FIELDS.map(k => [k, form.value[k]?.trim() ? form.value[k].trim() : null])
+    EDITABLE_FIELDS.map((k) => {
+      const v = (form.value[k] ?? '').trim()
+      return [k, !v || v === NONE ? null : v]
+    })
   )
   saving.value = true
   try {
@@ -125,14 +137,15 @@ const locationItems = computed(() =>
 )
 
 // 「誰的朋友／開發夥伴」人名選項（含現值，避免現有自由文字搜不到）
+// 空值項由 withNone 統一加上（reka 不允許空字串 value，不在此處放 '' item）
 const optionItems = computed(() => {
-  const set = new Set<string>([''])
+  const set = new Set<string>()
   for (const o of personOptions.value || []) set.add(o.label)
   for (const k of ['friendOf', 'devPartner'] as const) {
     const v = contact.value?.[k]
     if (v) set.add(v)
   }
-  return [...set].map(label => ({ label: label || '－', value: label }))
+  return [...set].filter(Boolean).map(label => ({ label, value: label }))
 })
 
 const freqItems = FOLLOW_UP_FREQ_OPTIONS.map(v => ({ label: v, value: v }))
@@ -156,7 +169,7 @@ const levelItems = LEVEL_OPTIONS.map(v => ({ label: v, value: v }))
             <span class="text-muted">位置</span>
             <USelect
               v-model="form.location"
-              :items="[{ label: '－', value: '' }, ...locationItems]"
+              :items="withNone(locationItems)"
               class="sketch-chip"
             />
           </label>
@@ -173,7 +186,7 @@ const levelItems = LEVEL_OPTIONS.map(v => ({ label: v, value: v }))
             <span class="text-muted">誰的朋友</span>
             <USelect
               v-model="form.friendOf"
-              :items="optionItems"
+              :items="withNone(optionItems)"
               class="sketch-chip"
             />
           </label>
@@ -182,7 +195,7 @@ const levelItems = LEVEL_OPTIONS.map(v => ({ label: v, value: v }))
             <span class="text-muted">開發夥伴</span>
             <USelect
               v-model="form.devPartner"
-              :items="optionItems"
+              :items="withNone(optionItems)"
               class="sketch-chip"
             />
           </label>
@@ -191,7 +204,7 @@ const levelItems = LEVEL_OPTIONS.map(v => ({ label: v, value: v }))
             <span class="text-muted">等級</span>
             <USelect
               v-model="form.level"
-              :items="[{ label: '－', value: '' }, ...levelItems]"
+              :items="withNone(levelItems)"
               class="sketch-chip"
             />
           </label>
@@ -208,7 +221,7 @@ const levelItems = LEVEL_OPTIONS.map(v => ({ label: v, value: v }))
             <span class="text-muted">跟進頻率</span>
             <USelect
               v-model="form.followUpFreq"
-              :items="[{ label: '－', value: '' }, ...freqItems]"
+              :items="withNone(freqItems)"
               class="sketch-chip"
             />
           </label>
