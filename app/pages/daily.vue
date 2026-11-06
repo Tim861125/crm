@@ -38,9 +38,9 @@ function refreshAll() {
       @detail="detailContact = $event"
     />
 
-    <!-- 明細 modal -->
+    <!-- 明細 modal（v-model:contact：子元件 defineModel('contact') 的命名對應） -->
     <ContactDetailModal
-      v-model="detailContact"
+      v-model:contact="detailContact"
       @refresh="refreshAll"
     />
   </UContainer>
