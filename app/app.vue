@@ -43,7 +43,7 @@ function isActive(path: string) {
         <NuxtLink
           v-if="!isActive('/daily')"
           to="/daily"
-          class="text-sm text-muted hover:underline decoration-wavy"
+          class="hidden sm:block text-sm text-muted hover:underline decoration-wavy"
         >
           每日任務 →
         </NuxtLink>

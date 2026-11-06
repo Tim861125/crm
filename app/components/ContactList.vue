@@ -149,7 +149,7 @@ function onEditKeydown(e: KeyboardEvent) {
       </UButton>
     </div>
 
-    <!-- 名單表格 -->
+    <!-- 名單表格（手機可橫滑） -->
     <div class="sketch-card p-2 sm:p-4 overflow-x-auto">
       <table class="sketch-table w-full min-w-[760px] text-sm">
         <thead>
