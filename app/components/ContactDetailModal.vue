@@ -35,11 +35,11 @@ const EDITABLE_FIELDS = [
   'note'
 ] as const
 
-// 表單草稿（開啟 / 換人時重置）
+// 表單草稿：每次「打開 modal」或「換人」時重置為當前資料（比照舊版 open watch 行為）
 const form = ref<Record<string, string>>({})
 
-watch(() => contact.value?.id, () => {
-  if (contact.value) {
+watch([open, () => contact.value?.id], ([o]) => {
+  if (o && contact.value) {
     form.value = Object.fromEntries(
       EDITABLE_FIELDS.map(k => [k, contact.value![k as keyof Contact] as string | null ?? ''])
     )
@@ -69,14 +69,21 @@ async function save() {
 }
 
 // ── 跟進紀錄 ─────────────────────────────────────────────────
-const { data: logs, refresh: refreshLogs } = useFetch<FollowUpLog[]>(
-  () => contact.value ? `/api/contacts/${contact.value!.id}/logs` : '/api/contacts',
-  {
-    default: () => [],
-    server: false, // 明細 modal 內的紀錄在開啟時才抓（沒抓到的話 SSR 會暫住頁面）
-    watch: [() => contact.value?.id]
+// 每次開啟 modal 才抓（不用 useFetch：URL 會隨開關消失，型別與 watch 都彆扭）
+const logs = ref<FollowUpLog[]>([])
+
+async function refreshLogs() {
+  if (!(open.value && contact.value)) return
+  try {
+    logs.value = await api<FollowUpLog[]>(`/api/contacts/${contact.value.id}/logs`)
+  } catch (err: unknown) {
+    toast.add({ title: '載入跟進紀錄失敗', description: (err as Error)?.message, color: 'error' })
   }
-)
+}
+
+watch(open, (o) => {
+  if (o) refreshLogs()
+})
 
 const logDate = ref(todayStr())
 const logContent = ref('')
@@ -103,6 +110,7 @@ async function removeLog(log: FollowUpLog) {
   try {
     await api(`/api/contacts/${contact.value?.id}/logs/${log.id}`, { method: 'DELETE' })
     refreshLogs()
+    emit('refresh') // 後端回算了 last/nextFollowUp，讓清單同步重抓
   } catch (err: unknown) {
     toast.add({ title: '刪除跟進紀錄失敗', description: (err as Error)?.message, color: 'error' })
   }
