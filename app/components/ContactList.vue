@@ -1,11 +1,16 @@
 <script setup lang="ts">
 import {
   api,
+  applyContactFilters,
+  FOLLOW_UP_FREQ_OPTIONS,
   FOLLOW_UP_FREQ_SHORT,
   isOverdue,
   overdueDays,
+  LOCATION_NONE,
   timeAgo,
-  type Contact
+  type Contact,
+  type ContactFilterState,
+  type StepFilter
 } from '../utils/crm'
 
 const toast = useToast()
@@ -15,16 +20,88 @@ const { data: contacts, refresh: refreshContacts } = useFetch('/api/contacts', {
 const { data: stages } = useFetch('/api/contact-stages', { default: () => [] })
 const { data: locations } = useFetch('/api/contact-locations', { default: () => [] })
 
-// 篩選
+// ── 篩選器（比照舊總名單的全組語意）──────────────────────────
 const search = ref('')
+const stepFilter = ref<StepFilter>('all')
+const freqFilter = ref('all')
+const locationFilter = ref<string>('all')
+const overdueOnly = ref(false)
+const sortByNext = ref(false)
 
-const filtered = computed(() =>
-  (contacts.value || []).filter(c =>
-    !search.value.trim()
-    || c.name.includes(search.value.trim())
-    || (c.contact ?? '').includes(search.value.trim())
-  )
+const filterState = computed<ContactFilterState>(() => ({
+  search: search.value,
+  step: stepFilter.value,
+  freq: freqFilter.value,
+  location: locationFilter.value,
+  overdueOnly: overdueOnly.value,
+  sortByNext: sortByNext.value
+}))
+
+const filtered = computed(() => applyContactFilters(contacts.value || [], filterState.value))
+
+const hasActiveFilter = computed(() =>
+  overdueOnly.value
+  || stepFilter.value !== 'all'
+  || freqFilter.value !== 'all'
+  || locationFilter.value !== 'all'
+  || !!search.value.trim()
 )
+
+const stats = computed(() => {
+  const list = contacts.value ?? []
+  return {
+    total: list.length,
+    overdue: list.filter(c => isOverdue(c.nextFollowUp)).length
+  }
+})
+
+// 破題欄標題顯示：作用中顯示目前篩選、未作用則叫「破題」
+const stepFilterValueLabel = computed(() => {
+  if (stepFilter.value === 'broached') return '破題'
+  if (stepFilter.value === 'unbroached') return '未破題'
+  if (stepFilter.value !== 'all') {
+    return (stages.value ?? []).find(s => String(s.id) === stepFilter.value)?.label ?? '破題'
+  }
+  return ''
+})
+
+// 進度欄標題點擊：all → 破題 → 未破題 → 各階段 → all
+function cycleStepFilter() {
+  const stageIds = (stages.value ?? []).map(s => String(s.id))
+  const pool: StepFilter[] = ['all', 'broached', 'unbroached', ...stageIds]
+  const idx = pool.indexOf(stepFilter.value)
+  stepFilter.value = pool[(idx + 1) % pool.length]!
+}
+
+// 跟進頻率欄標題點擊：all → 各頻率 → all
+function cycleFreqFilter() {
+  const opts = ['all', ...FOLLOW_UP_FREQ_OPTIONS]
+  const idx = opts.indexOf(freqFilter.value)
+  freqFilter.value = opts[(idx + 1) % opts.length]!
+}
+
+// stepFilter 若指向已刪除的階段，畫面會空掉 — 階段清單變動時校正回 all
+watch(stages, (list) => {
+  if (stepFilter.value !== 'all' && stepFilter.value !== 'broached' && stepFilter.value !== 'unbroached') {
+    const exists = (list ?? []).some(s => String(s.id) === stepFilter.value)
+    if (!exists) stepFilter.value = 'all'
+  }
+})
+
+function clearAllFilters() {
+  search.value = ''
+  stepFilter.value = 'all'
+  freqFilter.value = 'all'
+  locationFilter.value = 'all'
+  overdueOnly.value = false
+  // sortByNext 是排序、不是條件，保留不動
+}
+
+const locationFilterItems = computed(() => [
+  { label: '全部地點', value: 'all' },
+  { label: '未設定', value: LOCATION_NONE },
+  ...(locations.value ?? []).map(o => ({ label: o.label, value: o.label }))
+])
 
 // ── 明細 modal / 選項管理 modal ──────────────────────────────
 const detailContact = ref<Contact | null>(null)
@@ -117,12 +194,12 @@ function onEditKeydown(e: KeyboardEvent) {
       </h1>
 
       <p class="text-sm text-muted">
-        共 {{ contacts?.length ?? 0 }} 筆
+        共 {{ stats.total }} 筆<span v-if="stats.overdue"> · <span class="marker-red">逾期 {{ stats.overdue }} 位</span></span>
       </p>
     </div>
 
     <!-- 工具列 -->
-    <div class="flex flex-wrap items-center gap-2 mb-4">
+    <div class="flex flex-wrap items-center gap-2 mb-3">
       <UInput
         v-model="search"
         icon="i-lucide-search"
@@ -149,6 +226,30 @@ function onEditKeydown(e: KeyboardEvent) {
       </UButton>
     </div>
 
+    <!-- 篩選摘要 -->
+    <div
+      v-if="hasActiveFilter"
+      class="flex items-center gap-2 mb-3 text-sm"
+    >
+      <UBadge
+        variant="outline"
+        color="primary"
+        class="sketch-chip"
+      >
+        {{ filtered.length }} / {{ stats.total }} 筆
+      </UBadge>
+      <UButton
+        color="neutral"
+        variant="ghost"
+        size="xs"
+        icon="i-lucide-eraser"
+        class="sketch-chip"
+        @click="clearAllFilters"
+      >
+        清除所有篩選
+      </UButton>
+    </div>
+
     <!-- 名單表格（手機可橫滑） -->
     <div class="sketch-card p-2 sm:p-4 overflow-x-auto">
       <table class="sketch-table w-full min-w-[760px] text-sm">
@@ -158,22 +259,70 @@ function onEditKeydown(e: KeyboardEvent) {
               姓名
             </th>
             <th class="py-2 px-2 font-bold">
-              破題
+              <button
+                type="button"
+                class="cursor-pointer"
+                :class="stepFilterValueLabel ? 'marker bg-transparent -rotate-0.5' : ''"
+                title="點擊循環：全部 → 破題 → 未破題 → 各階段"
+                @click="cycleStepFilter"
+              >
+                {{ stepFilterValueLabel || '破題' }}
+              </button>
             </th>
             <th class="py-2 px-2 font-bold">
               進度
             </th>
             <th class="py-2 px-2 font-bold">
-              位置
+              <USelect
+                v-model="locationFilter"
+                :items="locationFilterItems"
+                size="xs"
+                variant="ghost"
+                class="w-24"
+                :ui="{ base: 'text-sm font-bold text-muted' }"
+              />
             </th>
             <th class="py-2 px-2 font-bold">
               聯絡
             </th>
             <th class="py-2 px-2 font-bold">
-              跟進
+              <button
+                type="button"
+                class="cursor-pointer"
+                :class="freqFilter !== 'all' ? 'marker bg-transparent -rotate-0.5' : ''"
+                title="點擊循環頻率篩選"
+                @click="cycleFreqFilter"
+              >
+                {{ freqFilter === 'all' ? '跟進' : FOLLOW_UP_FREQ_SHORT[freqFilter] || freqFilter }}
+              </button>
             </th>
             <th class="py-2 px-2 font-bold">
-              下次跟進
+              <div class="flex items-center gap-1.5">
+                <button
+                  type="button"
+                  class="cursor-pointer inline-flex items-center gap-0.5"
+                  :class="sortByNext ? 'marker bg-transparent -rotate-0.5' : ''"
+                  title="依下次跟進日排序"
+                  @click="sortByNext = !sortByNext"
+                >
+                  下次跟進
+                  <UIcon
+                    name="i-lucide-arrow-down-narrow-wide"
+                    class="size-3"
+                    :class="sortByNext ? '' : 'opacity-40'"
+                  />
+                </button>
+                <button
+                  v-if="stats.overdue > 0"
+                  type="button"
+                  class="cursor-pointer sketch-chip px-1.5 text-xs"
+                  :class="overdueOnly ? 'marker-red bg-transparent' : 'text-muted'"
+                  title="只看逾期"
+                  @click="overdueOnly = !overdueOnly"
+                >
+                  遲 {{ stats.overdue }}
+                </button>
+              </div>
             </th>
             <th class="py-2 px-2 font-bold w-24" />
           </tr>

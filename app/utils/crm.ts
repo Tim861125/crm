@@ -147,6 +147,55 @@ export function overdueDays(nextFollowUp: string | null | undefined): number {
   return Math.round((b - a) / 86400000)
 }
 
+// ── 總名單篩選（比照舊 ContactList 的 filtered 語意）─────────
+// 「未設定地點」的哨兵：Select/reka-ui 的值不可為空字串
+export const LOCATION_NONE = '__none__'
+
+export type StepFilter = 'all' | 'broached' | 'unbroached' | (string & {})
+
+export interface ContactFilterState {
+  // 搜尋（姓名 OR 聯絡方式）
+  search: string
+  // 進度：all=不限 / broached=破題 / unbroached=未破題 / 其餘為階段 id 字串
+  step: StepFilter
+  // 跟進頻率：all=不限，其餘為頻率值
+  freq: string
+  // 地點：all=不限 / LOCATION_NONE=未設定 / 其餘為地點值
+  location: string
+  overdueOnly: boolean
+  // 依下次跟進日排序（有日期的排前面、愈早愈前，沒有的排最後）
+  sortByNext: boolean
+}
+
+export function applyContactFilters(contacts: Contact[], f: ContactFilterState): Contact[] {
+  let list = contacts
+  const q = f.search.trim()
+  if (q) {
+    list = list.filter(c =>
+      c.name.includes(q) || (c.contact ?? '').includes(q)
+    )
+  }
+  if (f.step === 'broached') list = list.filter(c => c.broached)
+  else if (f.step === 'unbroached') list = list.filter(c => !c.broached)
+  else if (f.step !== 'all') list = list.filter(c => (c.completedStages ?? []).includes(Number(f.step)))
+
+  if (f.freq !== 'all') list = list.filter(c => c.followUpFreq === f.freq)
+
+  if (f.location === LOCATION_NONE) list = list.filter(c => !c.location)
+  else if (f.location !== 'all') list = list.filter(c => c.location === f.location)
+
+  if (f.overdueOnly) list = list.filter(c => isOverdue(c.nextFollowUp))
+
+  if (f.sortByNext) {
+    list = [...list].sort((a, b) => {
+      if (!a.nextFollowUp) return 1
+      if (!b.nextFollowUp) return -1
+      return a.nextFollowUp < b.nextFollowUp ? -1 : 1
+    })
+  }
+  return list
+}
+
 // 把日期（YYYY-MM-DD）轉成相對今天的中文描述：今天／昨天／N天前／一週前／N個月前…
 export function timeAgo(dateStr: string | null | undefined): string {
   if (!dateStr) return '—'

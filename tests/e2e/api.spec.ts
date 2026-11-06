@@ -119,6 +119,34 @@ describe('/api/contacts', () => {
     expect(after.every(l => l.id !== log1.id)).toBe(true)
   })
 
+  it('刪除最新跟進紀錄 → 以剩餘紀錄回算 last/next（舊行為回歸）', async () => {
+    const c2 = await $fetch<Contact>('/api/contacts', { method: 'POST', body: { name: '回算對象', followUpFreq: '一週一次' } })
+
+    await $fetch(`/api/contacts/${c2.id}/logs`, { method: 'POST', body: { date: '2026-11-01', content: null } })
+    await $fetch(`/api/contacts/${c2.id}/logs`, { method: 'POST', body: { date: '2026-11-07', content: null } })
+
+    // 此刻 last=11-07 → next=11-14
+    let me = (await $fetch<Contact[]>('/api/contacts')).find(c => c.id === c2.id)!
+    expect(me.lastFollowUp).toBe('2026-11-07')
+    expect(me.nextFollowUp).toBe('2026-11-14')
+
+    // 刪掉最新一筆 → 回算成 11-01 → next=11-08
+    const logs = await $fetch<Log[]>(`/api/contacts/${c2.id}/logs`)
+    await $fetch(`/api/contacts/${c2.id}/logs/${logs[0].id}`, { method: 'DELETE' })
+    me = (await $fetch<Contact[]>('/api/contacts')).find(c => c.id === c2.id)!
+    expect(me.lastFollowUp).toBe('2026-11-01')
+    expect(me.nextFollowUp).toBe('2026-11-08')
+
+    // 全刪光 → last/next 歸 null
+    const rest = await $fetch<Log[]>(`/api/contacts/${c2.id}/logs`)
+    for (const log of rest) {
+      await $fetch(`/api/contacts/${c2.id}/logs/${log.id}`, { method: 'DELETE' })
+    }
+    me = (await $fetch<Contact[]>('/api/contacts')).find(c => c.id === c2.id)!
+    expect(me.lastFollowUp).toBeNull()
+    expect(me.nextFollowUp).toBeNull()
+  })
+
   it('刪除名單 → 跟進紀錄與每日任務跟著刪', async () => {
     const victim = await $fetch<Contact>('/api/contacts', { method: 'POST', body: { name: '可刪除' } })
     await $fetch('/api/prospects', { method: 'POST', body: { section: 'develop', contactId: victim.id } })
