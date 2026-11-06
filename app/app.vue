@@ -21,7 +21,7 @@ function isActive(path: string) {
 <template>
   <UApp :toaster="{ position: 'top-center', progress: false, duration: 3000 }">
     <!-- 手繪導覽：頁籤式的兩頁切換 -->
-    <header class="sticky top-0 z-50 bg-[#faf6ec]/90 backdrop-blur-sm">
+    <header class="sticky top-0 z-50 bg-[var(--paper)]/90 backdrop-blur-sm">
       <UContainer class="flex items-center justify-between py-2 gap-3">
         <UIcon
           name="i-lucide-notebook-pen"
@@ -40,13 +40,21 @@ function isActive(path: string) {
           </NuxtLink>
         </nav>
 
-        <NuxtLink
-          v-if="!isActive('/daily')"
-          to="/daily"
-          class="hidden sm:block text-sm text-muted hover:underline decoration-wavy"
-        >
-          每日任務 →
-        </NuxtLink>
+        <div class="flex items-center gap-2 shrink-0">
+          <NuxtLink
+            v-if="!isActive('/daily')"
+            to="/daily"
+            class="hidden sm:block text-sm text-muted hover:underline decoration-wavy"
+          >
+            每日任務 →
+          </NuxtLink>
+
+          <!-- 深淺色切換 -->
+          <UColorModeButton
+            class="sketch-chip size-8 justify-center"
+            aria-label="切換深淺色"
+          />
+        </div>
       </UContainer>
     </header>
 

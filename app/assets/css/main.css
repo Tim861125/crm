@@ -12,12 +12,23 @@ button:not(:disabled):not([aria-disabled="true"]) {
   --font-sans: 'Patrick Hand', 'LXGW WenKai TC', cursive;
 }
 
-/* ── 紙感底色 ─────────────────────────────────────────────── */
+/* ── 紙感底色（light：奶油便條紙；dark：夜間牛皮紙）────────── */
 :root {
   --paper: #faf6ec;
+  --card: #fffdf7;
   --ink: #44403c; /* stone-700 */
   --ink-strong: #292524;
   --sketch-line: #57534e; /* stone-600 */
+  --dot-color: 87 83 78; /* 點陣格線基色，深淺模式共用 alpha 層 */
+}
+
+.dark {
+  --paper: #1c1917; /* stone-900 */
+  --card: #292524; /* stone-800 */
+  --ink: #d6d3d1; /* stone-300 */
+  --ink-strong: #f5f5f4;
+  --sketch-line: #a8a29e; /* stone-400 */
+  --dot-color: 168 162 158;
 }
 
 html {
@@ -27,10 +38,12 @@ html {
 }
 
 body {
+  /* 明確著色：避免 Nuxt UI 的 --ui-bg 在 .dark 下把 body 塗成黑 */
+  background-color: var(--paper);
   /* 紙上淡淡的方格點陣，像筆記本 */
   background-image:
-    radial-gradient(circle, rgb(87 83 78 / 0.14) 1px, transparent 1px),
-    radial-gradient(circle, rgb(87 83 78 / 0.07) 1px, transparent 1px);
+    radial-gradient(circle, rgb(var(--dot-color) / 0.14) 1px, transparent 1px),
+    radial-gradient(circle, rgb(var(--dot-color) / 0.07) 1px, transparent 1px);
   background-size: 28px 28px, 28px 28px;
   background-position: 0 0, 14px 14px;
 }
@@ -48,14 +61,14 @@ body {
 }
 
 .sketch-card {
-  background: #fffdf7;
+  background: var(--card);
   border: 2px solid var(--sketch-line);
   border-radius: 14px 18px 12px 19px / 17px 13px 20px 15px;
   box-shadow: 2px 3px 0 rgb(41 37 36 / 0.14);
 }
 
 .sketch-card-alt {
-  background: #fffdf7;
+  background: var(--card);
   border: 2px solid var(--sketch-line);
   border-radius: 18px 13px 19px 14px / 13px 20px 15px 17px;
   box-shadow: 2px 3px 0 rgb(41 37 36 / 0.14);
@@ -99,7 +112,7 @@ body {
 }
 .sketch-table td,
 .sketch-table th {
-  border-bottom: 1.5px dashed rgb(87 83 78 / 0.5);
+  border-bottom: 1.5px dashed rgb(var(--dot-color) / 0.5);
 }
 .sketch-table tbody tr:hover td {
   background: rgb(250 204 21 / 0.12);

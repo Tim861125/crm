@@ -12,6 +12,12 @@ export default defineNuxtConfig({
 
   css: ['~/assets/css/main.css'],
 
+  // 深淺色：預設 light（不跟隨系統），header 有 UColorModeButton 讓使用者切換
+  colorMode: {
+    preference: 'light',
+    fallback: 'light'
+  },
+
   devServer: {
     port: 1138
   },
