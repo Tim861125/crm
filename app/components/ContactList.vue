@@ -108,17 +108,26 @@ const detailContact = ref<Contact | null>(null)
 const optionsOpen = ref(false)
 
 // ── patch 工具：樂觀更新 + 失敗回滾 ──────────────────────────
+// 注意：useFetch 預設 shallow，就地改 items（contacts.value[i] = x）不會觸發畫面更新
+// （舊版正是踩過這坑才加 deep: true）。這裡一律以「換掉整個陣列」的方式更新。
+function replaceContact(idx: number, row: Contact) {
+  const next = [...(contacts.value ?? [])]
+  next[idx] = row
+  contacts.value = next
+}
+
 async function patchContact(c: Contact, patch: Partial<Contact> & Record<string, unknown>) {
   const idx = contacts.value?.findIndex(x => x.id === c.id)
   if (idx === undefined || idx < 0) return
   const backup = contacts.value![idx]!
-  contacts.value![idx] = { ...backup, ...patch } as Contact
+
+  replaceContact(idx, { ...backup, ...patch } as Contact) // 樂觀更新
 
   try {
     const updated = await api<Contact>(`/api/contacts/${c.id}`, { method: 'PATCH', body: patch })
-    contacts.value![idx] = updated
+    replaceContact(idx, updated)
   } catch (err: unknown) {
-    contacts.value![idx] = backup
+    replaceContact(idx, backup) // 回滾
     toast.add({ title: `儲存「${c.name}」失敗`, description: (err as Error)?.message, color: 'error' })
   }
 }
