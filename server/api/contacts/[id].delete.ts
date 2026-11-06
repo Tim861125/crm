@@ -1,5 +1,5 @@
 import { eq } from 'drizzle-orm'
-import { contacts, followUpLogs } from '../../db/schema'
+import { contacts, followUpLogs, prospects } from '../../db/schema'
 
 // 刪除名單：跟進紀錄跟著一起刪
 export default defineEventHandler(async (event) => {
@@ -15,8 +15,9 @@ export default defineEventHandler(async (event) => {
     throw createError({ statusCode: 404, statusMessage: '找不到這筆名單' })
   }
 
-  // 名單被刪除時，其跟進紀錄一併刪除
+  // 名單被刪除時，其跟進紀錄與每日任務關聯列一併刪除
   await db.delete(followUpLogs).where(eq(followUpLogs.contactId, id))
+  await db.delete(prospects).where(eq(prospects.contactId, id))
 
   return removed
 })

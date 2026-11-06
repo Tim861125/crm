@@ -65,6 +65,38 @@ export function todayStr(): string {
   return `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')}`
 }
 
+// 每日任務型別（對應後端 prospects 表 + 帶出的 contact 明細）
+// 四個區塊：develop=開發名單 / reserve=預備名單 / five=五人名單 / network=織網表
+// 每一列＝把某位總名單對象放進某個區塊；姓名與延伸欄位皆來自 contact，這裡只有 date 屬於這一列。
+export type ProspectSection = 'develop' | 'reserve' | 'five' | 'network'
+
+export interface Prospect {
+  id: number
+  section: ProspectSection
+  date: string | null
+  contactId: number
+  createdAt: number
+  // 所引用的總名單對象（後端 join 帶出）
+  contact: Contact
+}
+
+// 各區塊的顯示標題與手繪表情（每日任務頁面用）
+export const PROSPECT_SECTION_META: Record<ProspectSection, { title: string, icon: string, hint: string }> = {
+  develop: { title: '開發名單', icon: '🌱', hint: '正在一起開發的新人' },
+  reserve: { title: '預備名單', icon: '⏳', hint: '打算找來開發的潛力對象' },
+  five: { title: '五人名單', icon: '✋', hint: '最核心的五個人' },
+  network: { title: '織網表', icon: '🕸️', hint: '維繫關係的既有顧客' }
+}
+
+export const PROSPECT_SECTIONS: ProspectSection[] = ['develop', 'reserve', 'five', 'network']
+
+// 等級徽章顏色
+export function levelColor(level: string | null | undefined): 'error' | 'warning' | 'neutral' {
+  if (level === 'SSR') return 'error'
+  if (level === 'SR') return 'warning'
+  return 'neutral'
+}
+
 // 動態 path 的 $fetch 會踩到 Nuxt 的型別配對（Excessive stack depth），
 // 統一走這個不帶路由型別的薄包裝；回傳一律為 drizzle returning() 的陣列
 export async function apiArr<T = object>(url: string, opts?: Record<string, unknown>): Promise<T[]> {

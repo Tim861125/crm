@@ -87,6 +87,32 @@ export const contactLocations = sqliteTable('contact_locations', {
   userIdIdx: index('contact_locations_user_id_idx').on(table.userId)
 }))
 
+// 每日任務（個人名單表）：四個區塊共用一張表，以 section 區分
+//   develop=開發名單 / reserve=預備名單 / five=五人名單 / network=織網表
+// 採「先建立空白列，再 inline 逐欄填寫」的表單式操作，故除 section 外欄位皆可留空。
+// 每日任務：把「總名單的某個人」放進某個區塊的關聯列。
+//   姓名與延伸欄位（誰的朋友、等級、狀態…）都來自所引用的 contact，這裡只存「這一列自己的」資料。
+//   同一個人在同一區塊不重複，但可同時出現在不同區塊。contact 被刪除時，其 prospects 一併刪除。
+export const prospects = sqliteTable('prospects', {
+  id: integer('id').primaryKey({ autoIncrement: true }),
+  // 擁有者（預留）：同 contacts。單人模式下為 NULL。
+  userId: integer('user_id'),
+  // 引用的總名單對象
+  contactId: integer('contact_id')
+    .notNull()
+    .references(() => contacts.id),
+  // 所屬區塊：develop / reserve / five / network
+  section: text('section').notNull(),
+  // 日期（"YYYY-MM-DD"）：加入此區塊的日期，屬於這一列自己
+  date: text('date'),
+  createdAt: integer('created_at')
+    .notNull()
+    .$defaultFn(() => Math.floor(Date.now() / 1000))
+}, table => ({
+  userIdIdx: index('prospects_user_id_idx').on(table.userId),
+  contactIdIdx: index('prospects_contact_id_idx').on(table.contactId)
+}))
+
 // 跟進紀錄（時間軸，一筆名單對多筆紀錄）
 export const followUpLogs = sqliteTable('follow_up_logs', {
   id: integer('id').primaryKey({ autoIncrement: true }),

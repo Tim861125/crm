@@ -110,10 +110,22 @@ async function removeLog(log: FollowUpLog) {
 
 // 選項清單
 const { data: locations } = useFetch('/api/contact-locations', { default: () => [] })
+const { data: personOptions } = useFetch('/api/contact-options', { default: () => [] })
 
 const locationItems = computed(() =>
   locations.value.map(l => ({ label: l.label, value: l.label }))
 )
+
+// 「誰的朋友／開發夥伴」人名選項（含現值，避免現有自由文字搜不到）
+const optionItems = computed(() => {
+  const set = new Set<string>([''])
+  for (const o of personOptions.value || []) set.add(o.label)
+  for (const k of ['friendOf', 'devPartner'] as const) {
+    const v = contact.value?.[k]
+    if (v) set.add(v)
+  }
+  return [...set].map(label => ({ label: label || '－', value: label }))
+})
 
 const freqItems = FOLLOW_UP_FREQ_OPTIONS.map(v => ({ label: v, value: v }))
 const levelItems = LEVEL_OPTIONS.map(v => ({ label: v, value: v }))
@@ -151,16 +163,18 @@ const levelItems = LEVEL_OPTIONS.map(v => ({ label: v, value: v }))
 
           <label class="space-y-1">
             <span class="text-muted">誰的朋友</span>
-            <UInput
+            <USelect
               v-model="form.friendOf"
+              :items="optionItems"
               class="sketch-chip"
             />
           </label>
 
           <label class="space-y-1">
             <span class="text-muted">開發夥伴</span>
-            <UInput
+            <USelect
               v-model="form.devPartner"
+              :items="optionItems"
               class="sketch-chip"
             />
           </label>

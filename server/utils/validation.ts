@@ -87,6 +87,25 @@ export const contactLocationPatchSchema = z.object({
 
 export type ContactLocationPatch = z.infer<typeof contactLocationPatchSchema>
 
+// 各區塊 & 等級允許值（每日任務 prospects 用）
+export const PROSPECT_SECTIONS = ['develop', 'reserve', 'five', 'network'] as const
+
+// 每日任務：先建立空白列，把某位名單對象放進某個區塊。
+export const prospectInputSchema = z.object({
+  section: z.enum(PROSPECT_SECTIONS),
+  contactId: z.coerce.number().int(),
+  date: date.or(z.literal('')).nullish()
+})
+
+export type ProspectInput = z.infer<typeof prospectInputSchema>
+
+// 部分更新：只有這一列自己的 date 可改（section / contactId 不可改）
+export const prospectPatchSchema = z.object({
+  date: date.or(z.literal('')).nullish()
+})
+
+export type ProspectPatch = z.infer<typeof prospectPatchSchema>
+
 // 跟進紀錄輸入驗證
 export const followUpLogSchema = z.object({
   date,
