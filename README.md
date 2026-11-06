@@ -38,11 +38,18 @@
 ```sh
 bun install          # 安裝
 bun run dev          # 開發伺服器（http://localhost:1138）
-bun run test         # vitest（純函式）
+bun run test         # vitest：純函式單元測試 + API e2e
 bun run lint         # eslint
+bun run typecheck    # nuxt typecheck
 bun run db:generate  # 改 schema.ts 後產生遷移 SQL
 bun run db:migrate   # 套用遷移（dev 啟動時也會自動套）
 ```
+
+### 測試
+
+- `tests/followup.test.ts`、`tests/leadScore.test.ts`：純函式單元測試。
+- `tests/e2e/api.spec.ts`：**全 API 整合測試**（名單 CRUD/驗證、跟進紀錄回填、階段/選項/地點管理、每日任務冪等與連動刪除），每次執行前清掉獨立 DB `data/crm-test.db` 起一座專屬 server，不動開發 DB。
+- SQLite 雙驅動：bun runtime 用內建 `bun:sqlite`（dev），node runtime（vitest e2e / 部署）用 `better-sqlite3`；`server/db/migrate.ts` 依 runtime 自動選擇並把 bun:sqlite 包成 better-sqlite3 相同形狀。
 
 手動 API 測試：`crm.http`。
 

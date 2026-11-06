@@ -98,10 +98,10 @@ export function levelColor(level: string | null | undefined): 'error' | 'warning
 }
 
 // 動態 path 的 $fetch 會踩到 Nuxt 的型別配對（Excessive stack depth），
-// 統一走這個不帶路由型別的薄包裝；回傳一律為 drizzle returning() 的陣列
-export async function apiArr<T = object>(url: string, opts?: Record<string, unknown>): Promise<T[]> {
+// 統一走這個不帶路由型別的薄包裝；後端寫入端點回傳「單一物件」（list GET 回陣列）
+export async function api<T = object>(url: string, opts?: Record<string, unknown>): Promise<T> {
   const f = (globalThis as unknown as { $fetch: (u: string, o?: Record<string, unknown>) => Promise<unknown> }).$fetch
-  return (await f(url, opts ?? {})) as T[]
+  return (await f(url, opts ?? {})) as T
 }
 
 // 破題與否的切換選項

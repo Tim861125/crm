@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import {
-  apiArr,
+  api,
   FOLLOW_UP_FREQ_OPTIONS,
   LEVEL_OPTIONS,
   todayStr,
@@ -57,7 +57,7 @@ async function save() {
   )
   saving.value = true
   try {
-    const updated = (await apiArr<Contact>(`/api/contacts/${c.id}`, { method: 'PATCH', body }))[0]!
+    const updated = await api<Contact>(`/api/contacts/${c.id}`, { method: 'PATCH', body })
     emit('refresh')
     toast.add({ title: `已儲存「${updated.name}」`, color: 'neutral' })
     contact.value = updated
@@ -85,7 +85,7 @@ async function addLog() {
   const c = contact.value
   if (!c) return
   try {
-    await apiArr(`/api/contacts/${c.id}/logs`, {
+    await api(`/api/contacts/${c.id}/logs`, {
       method: 'POST',
       body: { date: logDate.value || todayStr(), content: logContent.value.trim() || null }
     })
@@ -101,7 +101,7 @@ async function addLog() {
 async function removeLog(log: FollowUpLog) {
   if (!window.confirm('確定刪除這筆跟進紀錄？')) return
   try {
-    await apiArr(`/api/contacts/${contact.value?.id}/logs/${log.id}`, { method: 'DELETE' })
+    await api(`/api/contacts/${contact.value?.id}/logs/${log.id}`, { method: 'DELETE' })
     refreshLogs()
   } catch (err: unknown) {
     toast.add({ title: '刪除跟進紀錄失敗', description: (err as Error)?.message, color: 'error' })

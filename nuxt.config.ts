@@ -2,7 +2,8 @@
 export default defineNuxtConfig({
   modules: [
     '@nuxt/eslint',
-    '@nuxt/ui'
+    '@nuxt/ui',
+    '@nuxt/test-utils/module' // 提供 vitest 的 nuxt environment 與 mountSuspended
   ],
 
   devtools: {
@@ -18,9 +19,9 @@ export default defineNuxtConfig({
   compatibilityDate: '2025-01-15',
 
   nitro: {
-    // bun:sqlite 為 Bun 內建模組，不打進 bundle、留在 runtime 由 bun 解析
+    // SQLite 驅動為外部解析（bun 用 builtin、node 用原生模組），不打進 bundle
     externals: {
-      external: ['bun:sqlite']
+      external: ['bun:sqlite', 'better-sqlite3']
     }
   },
 

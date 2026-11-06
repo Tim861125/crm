@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { apiArr } from '../utils/crm'
+import { api } from '../utils/crm'
 // 選項管理：進度階段（新增／改名／排序／刪除）＋ 人名選項 ＋ 地點選項
 const open = defineModel<boolean>('open', { default: false })
 
@@ -33,7 +33,7 @@ async function addStage() {
   const label = newStage.value.trim()
   if (!label) return
   try {
-    await apiArr('/api/contact-stages', { method: 'POST', body: { label } })
+    await api('/api/contact-stages', { method: 'POST', body: { label } })
     newStage.value = ''
     await refreshStages()
   } catch (err: unknown) {
@@ -44,7 +44,7 @@ async function addStage() {
 async function renameStage(stage: ContactStage, label: string) {
   if (!label.trim() || label === stage.label) return
   try {
-    await apiArr(`/api/contact-stages/${stage.id}`, { method: 'PATCH', body: { label: label.trim() } })
+    await api(`/api/contact-stages/${stage.id}`, { method: 'PATCH', body: { label: label.trim() } })
     await refreshStages()
   } catch (err: unknown) {
     toast.add({ title: '改名失敗', description: (err as Error)?.message, color: 'error' })
@@ -59,8 +59,8 @@ async function moveStage(stage: ContactStage, dir: -1 | 1) {
   if (!other) return
   try {
     await Promise.all([
-      apiArr(`/api/contact-stages/${stage.id}`, { method: 'PATCH', body: { sortOrder: other.sortOrder } }),
-      apiArr(`/api/contact-stages/${other.id}`, { method: 'PATCH', body: { sortOrder: stage.sortOrder } })
+      api(`/api/contact-stages/${stage.id}`, { method: 'PATCH', body: { sortOrder: other.sortOrder } }),
+      api(`/api/contact-stages/${other.id}`, { method: 'PATCH', body: { sortOrder: stage.sortOrder } })
     ])
     await refreshStages()
   } catch (err: unknown) {
@@ -71,7 +71,7 @@ async function moveStage(stage: ContactStage, dir: -1 | 1) {
 async function removeStage(stage: ContactStage) {
   if (!window.confirm(`刪除階段「${stage.label}」？名單上已完成的勾選會保留，但不再顯示。`)) return
   try {
-    await apiArr(`/api/contact-stages/${stage.id}`, { method: 'DELETE' })
+    await api(`/api/contact-stages/${stage.id}`, { method: 'DELETE' })
     await refreshStages()
   } catch (err: unknown) {
     toast.add({ title: '刪除階段失敗', description: (err as Error)?.message, color: 'error' })
@@ -86,7 +86,7 @@ async function addOption() {
   const label = newOption.value.trim()
   if (!label) return
   try {
-    await apiArr('/api/contact-options', { method: 'POST', body: { label } })
+    await api('/api/contact-options', { method: 'POST', body: { label } })
     newOption.value = ''
     await refreshOptions()
   } catch (err: unknown) {
@@ -96,7 +96,7 @@ async function addOption() {
 
 async function removeOption(option: ContactOption) {
   try {
-    await apiArr(`/api/contact-options/${option.id}`, { method: 'DELETE' })
+    await api(`/api/contact-options/${option.id}`, { method: 'DELETE' })
     await refreshOptions()
   } catch (err: unknown) {
     toast.add({ title: '刪除人名失敗', description: (err as Error)?.message, color: 'error' })
@@ -107,7 +107,7 @@ async function addLocation() {
   const label = newLocation.value.trim()
   if (!label) return
   try {
-    await apiArr('/api/contact-locations', { method: 'POST', body: { label } })
+    await api('/api/contact-locations', { method: 'POST', body: { label } })
     newLocation.value = ''
     await refreshLocations()
   } catch (err: unknown) {
@@ -117,7 +117,7 @@ async function addLocation() {
 
 async function removeLocation(location: ContactLocation) {
   try {
-    await apiArr(`/api/contact-locations/${location.id}`, { method: 'DELETE' })
+    await api(`/api/contact-locations/${location.id}`, { method: 'DELETE' })
     await refreshLocations()
   } catch (err: unknown) {
     toast.add({ title: '刪除地點失敗', description: (err as Error)?.message, color: 'error' })

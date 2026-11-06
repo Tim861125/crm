@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import {
-  apiArr,
+  api,
   FOLLOW_UP_FREQ_SHORT,
   isOverdue,
   overdueDays,
@@ -38,7 +38,7 @@ async function patchContact(c: Contact, patch: Partial<Contact> & Record<string,
   contacts.value![idx] = { ...backup, ...patch } as Contact
 
   try {
-    const updated = (await apiArr<Contact>(`/api/contacts/${c.id}`, { method: 'PATCH', body: patch }))[0]!
+    const updated = await api<Contact>(`/api/contacts/${c.id}`, { method: 'PATCH', body: patch })
     contacts.value![idx] = updated
   } catch (err: unknown) {
     contacts.value![idx] = backup
@@ -82,7 +82,7 @@ function toggleStage(c: Contact, stageId: number) {
 // ── 新增 / 刪除名單 ──────────────────────────────────────────
 async function addContact() {
   try {
-    const created = (await apiArr<Contact>('/api/contacts', { method: 'POST', body: { name: '新名單' } }))[0]!
+    const created = await api<Contact>('/api/contacts', { method: 'POST', body: { name: '新名單' } })
     await refreshContacts()
     startEdit(created, 'name') // 建立後直接進入姓名編輯
   } catch (err: unknown) {
@@ -93,7 +93,7 @@ async function addContact() {
 async function removeContact(c: Contact) {
   if (!window.confirm(`確定要刪除「${c.name}」嗎？跟進紀錄也會一起刪除。`)) return
   try {
-    await apiArr(`/api/contacts/${c.id}`, { method: 'DELETE' })
+    await api(`/api/contacts/${c.id}`, { method: 'DELETE' })
     toast.add({ title: `已刪除「${c.name}」`, color: 'neutral' })
     await refreshContacts()
   } catch (err: unknown) {

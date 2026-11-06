@@ -10,14 +10,13 @@ export default defineEventHandler(async (event) => {
 
   const db = useDb()
 
+  // 先刪子表（FK 沒設 cascade）、再刪名單本身
+  await db.delete(followUpLogs).where(eq(followUpLogs.contactId, id))
+  await db.delete(prospects).where(eq(prospects.contactId, id))
   const [removed] = await db.delete(contacts).where(eq(contacts.id, id)).returning()
   if (!removed) {
     throw createError({ statusCode: 404, statusMessage: '找不到這筆名單' })
   }
-
-  // 名單被刪除時，其跟進紀錄與每日任務關聯列一併刪除
-  await db.delete(followUpLogs).where(eq(followUpLogs.contactId, id))
-  await db.delete(prospects).where(eq(prospects.contactId, id))
 
   return removed
 })

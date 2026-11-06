@@ -1,12 +1,12 @@
 <script setup lang="ts">
 import {
-  apiArr,
+  api,
   todayStr,
   timeAgo,
   type Contact,
   type FollowUpLog
 } from '../utils/crm'
-import { isTodayFollowUp, leadScore, topReason, type LeadReason } from '../../shared/utils/leadScore'
+import { isTodayFollowUp, leadScore, topReason, type LeadReason } from '#shared/utils/leadScore'
 
 // 今日跟進智慧清單：用透明的熱度分數回答「今天先找誰」。
 // 入列 = 逾期 ∪ 今天到期 ∪ 待啟動；排序 = 熱度分數（越大越前）。
@@ -34,7 +34,7 @@ const followUps = computed(() =>
 async function markDone(entry: { contact: Contact }) {
   const c = entry.contact
   try {
-    await apiArr<FollowUpLog>(`/api/contacts/${c.id}/logs`, {
+    await api<FollowUpLog>(`/api/contacts/${c.id}/logs`, {
       method: 'POST',
       body: { date: todayStr(), content: null }
     })

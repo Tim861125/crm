@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import {
-  apiArr,
+  api,
   PROSPECT_SECTION_META,
   PROSPECT_SECTIONS,
   todayStr,
@@ -44,7 +44,7 @@ async function addRow(section: ProspectSection) {
   const contactId = picking.value[section]?.value ?? null
   if (!contactId) return
   try {
-    await apiArr<Prospect>('/api/prospects', {
+    await api<Prospect>('/api/prospects', {
       method: 'POST',
       body: { section, contactId, date: todayStr() }
     })
@@ -59,7 +59,7 @@ async function addRow(section: ProspectSection) {
 async function removeRow(row: Prospect) {
   if (!window.confirm(`要把「${row.contact.name}」從區塊移除嗎？（總名單裡的人不會被刪除）`)) return
   try {
-    await apiArr(`/api/prospects/${row.id}`, { method: 'DELETE' })
+    await api(`/api/prospects/${row.id}`, { method: 'DELETE' })
     await refreshProspects()
   } catch (err: unknown) {
     toast.add({ title: '移除失敗', description: (err as Error)?.message, color: 'error' })
@@ -69,7 +69,7 @@ async function removeRow(row: Prospect) {
 // ── 日期（這一列自己的）───────────────────────────────────────
 async function patchRow(row: Prospect, date: string | null) {
   try {
-    await apiArr(`/api/prospects/${row.id}`, { method: 'PATCH', body: { date: date || null } })
+    await api(`/api/prospects/${row.id}`, { method: 'PATCH', body: { date: date || null } })
     await refreshProspects()
   } catch (err: unknown) {
     toast.add({ title: '更新日期失敗', description: (err as Error)?.message, color: 'error' })
@@ -79,7 +79,7 @@ async function patchRow(row: Prospect, date: string | null) {
 // ── contact 欄位 inline 修改（等級／狀態）─────────────────────
 async function patchContact(c: Contact, key: 'level' | 'status', value: string) {
   try {
-    await apiArr<Contact>(`/api/contacts/${c.id}`, { method: 'PATCH', body: { [key]: value || null } })
+    await api<Contact>(`/api/contacts/${c.id}`, { method: 'PATCH', body: { [key]: value || null } })
     await refreshContacts()
     await refreshProspects()
   } catch (err: unknown) {
