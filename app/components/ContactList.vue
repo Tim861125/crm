@@ -55,20 +55,19 @@ const stats = computed(() => {
   }
 })
 
-// 破題欄標題顯示：作用中顯示目前篩選、未作用則叫「破題」
+// 進度欄標題顯示：作用中顯示目前階段篩選、未作用則叫「進度」
+// （破題狀態不進階段循環 — 它有自己的欄位開關）
 const stepFilterValueLabel = computed(() => {
-  if (stepFilter.value === 'broached') return '破題'
-  if (stepFilter.value === 'unbroached') return '未破題'
   if (stepFilter.value !== 'all') {
-    return (stages.value ?? []).find(s => String(s.id) === stepFilter.value)?.label ?? '破題'
+    return (stages.value ?? []).find(s => String(s.id) === stepFilter.value)?.label ?? ''
   }
   return ''
 })
 
-// 進度欄標題點擊：all → 破題 → 未破題 → 各階段 → all
+// 進度欄標題點擊：all → 各階段 → all
 function cycleStepFilter() {
   const stageIds = (stages.value ?? []).map(s => String(s.id))
-  const pool: StepFilter[] = ['all', 'broached', 'unbroached', ...stageIds]
+  const pool: StepFilter[] = ['all', ...stageIds]
   const idx = pool.indexOf(stepFilter.value)
   stepFilter.value = pool[(idx + 1) % pool.length]!
 }
@@ -268,18 +267,18 @@ function onEditKeydown(e: KeyboardEvent) {
               姓名
             </th>
             <th class="py-2 px-2 font-bold">
+              破題
+            </th>
+            <th class="py-2 px-2 font-bold">
               <button
                 type="button"
                 class="cursor-pointer"
                 :class="stepFilterValueLabel ? 'marker bg-transparent -rotate-0.5' : ''"
-                title="點擊循環：全部 → 破題 → 未破題 → 各階段"
+                title="點擊循環：全部 → 各階段"
                 @click="cycleStepFilter"
               >
-                {{ stepFilterValueLabel || '破題' }}
+                {{ stepFilterValueLabel || '進度' }}
               </button>
-            </th>
-            <th class="py-2 px-2 font-bold">
-              進度
             </th>
             <th class="py-2 px-2 font-bold">
               <USelect
