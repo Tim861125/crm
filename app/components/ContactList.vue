@@ -56,7 +56,7 @@ const stats = computed(() => {
 })
 
 // 進度欄標題顯示：作用中顯示目前階段篩選、未作用則叫「進度」
-// （破題狀態不進階段循環 — 它有自己的欄位開關）
+// （破題不進階段篩選；'broached'/'unbroached' 是純函式保留的能力，UI 不會設出來）
 const stepFilterValueLabel = computed(() => {
   if (stepFilter.value !== 'all') {
     return (stages.value ?? []).find(s => String(s.id) === stepFilter.value)?.label ?? ''
@@ -81,7 +81,7 @@ function cycleFreqFilter() {
 
 // stepFilter 若指向已刪除的階段，畫面會空掉 — 階段清單變動時校正回 all
 watch(stages, (list) => {
-  if (stepFilter.value !== 'all' && stepFilter.value !== 'broached' && stepFilter.value !== 'unbroached') {
+  if (stepFilter.value !== 'all') {
     const exists = (list ?? []).some(s => String(s.id) === stepFilter.value)
     if (!exists) stepFilter.value = 'all'
   }
@@ -149,11 +149,6 @@ function commitEdit(c: Contact, field: 'name' | 'contact' | 'location') {
 
 function cancelEdit() {
   editingKey.value = null
-}
-
-// ── 破題切換 ─────────────────────────────────────────────────
-function toggleBroached(c: Contact) {
-  patchContact(c, { broached: !c.broached })
 }
 
 // ── 進度階段切換 ─────────────────────────────────────────────
@@ -267,9 +262,6 @@ function onEditKeydown(e: KeyboardEvent) {
               姓名
             </th>
             <th class="py-2 px-2 font-bold">
-              破題
-            </th>
-            <th class="py-2 px-2 font-bold">
               <button
                 type="button"
                 class="cursor-pointer"
@@ -365,19 +357,6 @@ function onEditKeydown(e: KeyboardEvent) {
               >
                 {{ c.level }}
               </span>
-            </td>
-
-            <!-- 破題 -->
-            <td class="py-2.5 px-2 align-top">
-              <button
-                class="text-lg leading-none"
-                :class="c.broached ? '' : 'opacity-40 grayscale'"
-                :title="c.broached ? '破題：已切入正題' : '未破題，點擊切換'"
-                :aria-label="c.broached ? '破題（點擊改為未破題）' : '未破題（點擊改為破題）'"
-                @click="toggleBroached(c)"
-              >
-                {{ c.broached ? '💥' : '✏️' }}
-              </button>
             </td>
 
             <!-- 進度階段 -->
@@ -494,7 +473,7 @@ function onEditKeydown(e: KeyboardEvent) {
 
           <tr v-if="!filtered.length">
             <td
-              colspan="8"
+              colspan="7"
               class="py-10 text-center text-muted"
             >
               <template v-if="search">
