@@ -170,7 +170,7 @@ const levelItems = LEVEL_OPTIONS.map(v => ({ label: v, value: v }))
             <USelect
               v-model="form.location"
               :items="withNone(locationItems)"
-              class="sketch-chip"
+              class="w-full sketch-chip"
             />
           </label>
 
@@ -178,7 +178,7 @@ const levelItems = LEVEL_OPTIONS.map(v => ({ label: v, value: v }))
             <span class="text-muted">聯絡方式</span>
             <UInput
               v-model="form.contact"
-              class="sketch-chip"
+              class="w-full sketch-chip"
             />
           </label>
 
@@ -187,7 +187,7 @@ const levelItems = LEVEL_OPTIONS.map(v => ({ label: v, value: v }))
             <USelect
               v-model="form.friendOf"
               :items="withNone(optionItems)"
-              class="sketch-chip"
+              class="w-full sketch-chip"
             />
           </label>
 
@@ -196,7 +196,7 @@ const levelItems = LEVEL_OPTIONS.map(v => ({ label: v, value: v }))
             <USelect
               v-model="form.devPartner"
               :items="withNone(optionItems)"
-              class="sketch-chip"
+              class="w-full sketch-chip"
             />
           </label>
 
@@ -205,7 +205,7 @@ const levelItems = LEVEL_OPTIONS.map(v => ({ label: v, value: v }))
             <USelect
               v-model="form.level"
               :items="withNone(levelItems)"
-              class="sketch-chip"
+              class="w-full sketch-chip"
             />
           </label>
 
@@ -213,7 +213,7 @@ const levelItems = LEVEL_OPTIONS.map(v => ({ label: v, value: v }))
             <span class="text-muted">狀態（織網表）</span>
             <UInput
               v-model="form.status"
-              class="sketch-chip"
+              class="w-full sketch-chip"
             />
           </label>
 
@@ -222,7 +222,7 @@ const levelItems = LEVEL_OPTIONS.map(v => ({ label: v, value: v }))
             <USelect
               v-model="form.followUpFreq"
               :items="withNone(freqItems)"
-              class="sketch-chip"
+              class="w-full sketch-chip"
             />
           </label>
 
@@ -231,7 +231,7 @@ const levelItems = LEVEL_OPTIONS.map(v => ({ label: v, value: v }))
             <UInput
               v-model="form.lastFollowUp"
               type="date"
-              class="sketch-chip"
+              class="w-full sketch-chip"
             />
           </label>
 

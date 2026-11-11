@@ -27,9 +27,17 @@ const mk = (over: Partial<Contact> & { id: number, name: string }): Contact => (
   ...over
 })
 
+// 以今天為基準的相對日期（YYYY-MM-DD，本地時間）：
+// 寫死絕對日期會隨時間失效（逾期判斷依賴真實時鐘），相對日期才能永久穩定
+const fromToday = (offsetDays: number): string => {
+  const d = new Date()
+  d.setDate(d.getDate() + offsetDays)
+  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`
+}
+
 const contacts: Contact[] = [
-  mk({ id: 1, name: '王小明', location: '中壢', broached: true, completedStages: [10, 20], contact: '0910', followUpFreq: '一週一次', nextFollowUp: '2026-11-01' }),
-  mk({ id: 2, name: '陳小美', location: '新竹', broached: false, completedStages: [10], contact: '0920', followUpFreq: '兩週一次', nextFollowUp: '2026-11-10' }),
+  mk({ id: 1, name: '王小明', location: '中壢', broached: true, completedStages: [10, 20], contact: '0910', followUpFreq: '一週一次', nextFollowUp: fromToday(-11) }),
+  mk({ id: 2, name: '陳小美', location: '新竹', broached: false, completedStages: [10], contact: '0920', followUpFreq: '兩週一次', nextFollowUp: fromToday(10) }),
   mk({ id: 3, name: '張大同', location: null, broached: false, completedStages: [], contact: null, followUpFreq: '暫停', nextFollowUp: null })
 ]
 
