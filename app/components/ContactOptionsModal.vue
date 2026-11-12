@@ -3,10 +3,18 @@ import RBadge from '../components/rough/RBadge.vue'
 import RButton from '../components/rough/RButton.vue'
 import RDialog from '../components/rough/RDialog.vue'
 import RInput from '../components/rough/RInput.vue'
-import RTabs from '../components/rough/RTabs.vue'
 import { api } from '../utils/crm'
-// 選項管理：進度階段（新增／改名／排序／刪除）＋ 人名選項 ＋ 地點選項
+// 選項管理 dialog（單頁模式）：mode 決定內容 —
+// stages＝進度階段（新增／改名／排序／刪除）；options＝人名選項；locations＝地點選項
 const open = defineModel<boolean>('open', { default: false })
+const props = defineProps<{ mode: 'stages' | 'options' | 'locations' }>()
+
+const titles = {
+  stages: '管理進度階段',
+  options: '管理人名選項',
+  locations: '管理地點選項'
+} as const
+const title = computed(() => titles[props.mode])
 
 const { flash } = useNotice()
 
@@ -16,20 +24,11 @@ const { data: options, refresh: refreshOptions } = useFetch('/api/contact-option
 const { data: locations, refresh: refreshLocations } = useFetch('/api/contact-locations', { default: () => [] })
 
 watch(open, (v) => {
-  if (v) {
-    refreshStages()
-    refreshOptions()
-    refreshLocations()
-  }
+  if (!v) return
+  if (props.mode === 'stages') refreshStages()
+  else if (props.mode === 'options') refreshOptions()
+  else refreshLocations()
 })
-
-const section = ref<'stages' | 'options' | 'locations'>('stages')
-
-const tabs = [
-  { key: 'stages', label: '進度階段' },
-  { key: 'options', label: '人名選項' },
-  { key: 'locations', label: '地點選項' }
-]
 
 // ── 進度階段 ─────────────────────────────────────────────────
 const newStage = ref('')
@@ -141,22 +140,15 @@ async function removeLocation(location: ContactLocation) {
 <template>
   <RDialog
     :open="open"
-    title="管理階段／選項"
+    :title="title"
     @update:open="open = $event"
   >
-    <RTabs
-      v-model="section"
-      :tabs="tabs"
-      base-id="optmgr"
-    />
-
     <!-- 進度階段 -->
     <div
-      v-if="section === 'stages'"
-      id="optmgr-panel-stages"
+      v-if="props.mode === 'stages'"
       class="tab-panel"
-      role="tabpanel"
-      aria-labelledby="optmgr-tab-stages"
+      role="group"
+      :aria-label="title"
       tabindex="0"
     >
       <form
@@ -239,11 +231,10 @@ async function removeLocation(location: ContactLocation) {
 
     <!-- 人名選項 -->
     <div
-      v-else-if="section === 'options'"
-      id="optmgr-panel-options"
+      v-else-if="props.mode === 'options'"
       class="tab-panel"
-      role="tabpanel"
-      aria-labelledby="optmgr-tab-options"
+      role="group"
+      :aria-label="title"
       tabindex="0"
     >
       <form
@@ -291,10 +282,9 @@ async function removeLocation(location: ContactLocation) {
     <!-- 地點選項 -->
     <div
       v-else
-      id="optmgr-panel-locations"
       class="tab-panel"
-      role="tabpanel"
-      aria-labelledby="optmgr-tab-locations"
+      role="group"
+      :aria-label="title"
       tabindex="0"
     >
       <form

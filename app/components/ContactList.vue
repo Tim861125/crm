@@ -237,7 +237,7 @@ function onEditKeydown(e: KeyboardEvent) {
         {{ adding ? '新增中…' : '新增名單' }}
       </RButton>
       <RButton @click="optionsOpen = true">
-        管理階段／選項
+        管理人名選項
       </RButton>
     </div>
 
@@ -563,7 +563,10 @@ function onEditKeydown(e: KeyboardEvent) {
       @refresh="refreshContacts"
     />
 
-    <!-- 選項管理 modal -->
-    <ContactOptionsModal v-model:open="optionsOpen" />
+    <!-- 人名選項管理 modal -->
+    <ContactOptionsModal
+      v-model:open="optionsOpen"
+      mode="options"
+    />
   </div>
 </template>
