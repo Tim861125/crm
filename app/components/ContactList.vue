@@ -93,6 +93,14 @@ watch(stages, (list) => {
   }
 })
 
+// locationFilter 指到已刪除的地點同樣會空榜（select 變空白值）— 同樣校正回 all
+watch(locations, (list) => {
+  if (locationFilter.value !== 'all' && locationFilter.value !== LOCATION_NONE) {
+    const exists = (list ?? []).some(l => l.label === locationFilter.value)
+    if (!exists) locationFilter.value = 'all'
+  }
+})
+
 function clearAllFilters() {
   search.value = ''
   stepFilter.value = 'all'

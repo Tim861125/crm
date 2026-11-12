@@ -104,7 +104,13 @@ async function refreshLogs() {
 }
 
 watch(open, (o) => {
-  if (o) refreshLogs()
+  if (o) {
+    refreshLogs()
+    // 同 key useFetch 不跨元件同步：開明細時重抓選項清單，
+    // 才看得到剛在「管理人名／地點選項」dialog 新增的項目
+    refreshLocations()
+    refreshOptions()
+  }
 })
 
 const logDate = ref(todayStr())
@@ -139,8 +145,8 @@ async function removeLog(log: FollowUpLog) {
 }
 
 // 選項清單
-const { data: locations } = useFetch('/api/contact-locations', { default: () => [] })
-const { data: personOptions } = useFetch('/api/contact-options', { default: () => [] })
+const { data: locations, refresh: refreshLocations } = useFetch('/api/contact-locations', { default: () => [] })
+const { data: personOptions, refresh: refreshOptions } = useFetch('/api/contact-options', { default: () => [] })
 
 const locationItems = computed(() =>
   locations.value.map(l => ({ label: l.label, value: l.label }))
