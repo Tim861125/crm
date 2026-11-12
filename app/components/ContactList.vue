@@ -23,8 +23,8 @@ const { flash } = useNotice()
 
 // ── 資料 ─────────────────────────────────────────────────────
 const { data: contacts, status: contactsStatus, error: contactsError, refresh: refreshContacts } = useFetch('/api/contacts', { default: () => [] })
-const { data: stages } = useFetch('/api/contact-stages', { default: () => [] })
-const { data: locations } = useFetch('/api/contact-locations', { default: () => [] })
+const { data: stages, refresh: refreshStages } = useFetch('/api/contact-stages', { default: () => [] })
+const { data: locations, refresh: refreshLocations } = useFetch('/api/contact-locations', { default: () => [] })
 
 // ── 篩選器（比照舊總名單的全組語意）──────────────────────────
 const search = ref('')
@@ -108,8 +108,10 @@ const locationFilterItems = computed(() => [
   ...(locations.value ?? []).map(o => ({ label: o.label, value: o.label }))
 ])
 
-// ── 明細 modal / 選項管理 modal ──────────────────────────────
+// ── 明細 modal / 各管理 dialog ───────────────────────────────
 const detailContact = ref<Contact | null>(null)
+const stagesOpen = ref(false)
+const locationsOpen = ref(false)
 const optionsOpen = ref(false)
 
 // ── patch 工具：樂觀更新 + 失敗回滾 ──────────────────────────
@@ -270,24 +272,46 @@ function onEditKeydown(e: KeyboardEvent) {
           <tr>
             <th>姓名</th>
             <th>
-              <button
-                type="button"
-                class="th-filter"
-                :class="{ 'is-active': !!stepFilterValueLabel }"
-                :aria-label="stepFilterValueLabel ? `進度篩選：${stepFilterValueLabel}，點擊換下一個` : '依進度篩選：全部，點擊開始循環階段'"
-                title="點擊循環：全部 → 各階段"
-                @click="cycleStepFilter"
-              >
-                {{ stepFilterValueLabel || '進度' }}
-              </button>
+              <div class="flex flex-wrap items-center gap-1">
+                <button
+                  type="button"
+                  class="th-filter"
+                  title="點擊管理進度階段"
+                  aria-haspopup="dialog"
+                  @click="stagesOpen = true"
+                >
+                  進度
+                </button>
+                <button
+                  type="button"
+                  class="th-filter"
+                  :class="{ 'is-active': !!stepFilterValueLabel }"
+                  :aria-label="stepFilterValueLabel ? `進度篩選：${stepFilterValueLabel}，點擊換下一個` : '依進度篩選：全部，點擊開始循環階段'"
+                  title="循環進度篩選"
+                  @click="cycleStepFilter"
+                >
+                  {{ stepFilterValueLabel || '篩選' }}
+                </button>
+              </div>
             </th>
             <th>
-              <div class="th-select">
-                <RSelect
-                  v-model="locationFilter"
-                  aria-label="依地點篩選"
-                  :options="locationFilterItems"
-                />
+              <div class="flex flex-wrap items-center gap-1">
+                <button
+                  type="button"
+                  class="th-filter"
+                  title="點擊管理地點選項"
+                  aria-haspopup="dialog"
+                  @click="locationsOpen = true"
+                >
+                  地點
+                </button>
+                <div class="th-select">
+                  <RSelect
+                    v-model="locationFilter"
+                    aria-label="依地點篩選"
+                    :options="locationFilterItems"
+                  />
+                </div>
               </div>
             </th>
             <th>聯絡</th>
@@ -393,7 +417,7 @@ function onEditKeydown(e: KeyboardEvent) {
               <span
                 v-else
                 class="muted-note"
-              >先在「管理階段／選項」建立階段</span>
+              >還沒有階段，點「進度」標題新增</span>
             </td>
 
             <!-- 位置 -->
@@ -563,7 +587,18 @@ function onEditKeydown(e: KeyboardEvent) {
       @refresh="refreshContacts"
     />
 
-    <!-- 人名選項管理 modal -->
+    <!-- 管理 dialog：階段／地點由欄位標題開啟，人名選項由工具列開啟；
+         refresh 事件驅動名單頁刷新（見 ContactOptionsModal 檔內說明） -->
+    <ContactOptionsModal
+      v-model:open="stagesOpen"
+      mode="stages"
+      @refresh="refreshStages"
+    />
+    <ContactOptionsModal
+      v-model:open="locationsOpen"
+      mode="locations"
+      @refresh="refreshLocations"
+    />
     <ContactOptionsModal
       v-model:open="optionsOpen"
       mode="options"

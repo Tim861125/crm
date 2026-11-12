@@ -18,7 +18,16 @@ const title = computed(() => titles[props.mode])
 
 const { flash } = useNotice()
 
-// 相同 URL 的 useFetch 會與清單頁共用快取，這裡 refresh 也會同步名單頁的資料
+// 同 URL 的 useFetch 快取只在初次共享：本元件 refresh() 不會同步到其他元件
+// （A/B 實測舊版亦然），因此每次成功變更都 emit refresh，由父層刷新自己的清單
+// （比照 ContactDetailModal 的 refresh 事件模式）
+const emit = defineEmits<{ refresh: [] }>()
+
+// 資料成功變更後：刷新本元件列表＋通知父層
+async function afterMutation(refresh: () => Promise<unknown>) {
+  await refresh()
+  emit('refresh')
+}
 const { data: stages, refresh: refreshStages } = useFetch('/api/contact-stages', { default: () => [] })
 const { data: options, refresh: refreshOptions } = useFetch('/api/contact-options', { default: () => [] })
 const { data: locations, refresh: refreshLocations } = useFetch('/api/contact-locations', { default: () => [] })
@@ -39,7 +48,7 @@ async function addStage() {
   try {
     await api('/api/contact-stages', { method: 'POST', body: { label } })
     newStage.value = ''
-    await refreshStages()
+    await afterMutation(refreshStages)
   } catch (err: unknown) {
     flash(`新增階段失敗：${(err as Error)?.message}`, { error: true })
   }
@@ -57,7 +66,7 @@ async function commitRename(stage: ContactStage) {
   if (!label.trim() || label.trim() === stage.label) return
   try {
     await api(`/api/contact-stages/${stage.id}`, { method: 'PATCH', body: { label: label.trim() } })
-    await refreshStages()
+    await afterMutation(refreshStages)
   } catch (err: unknown) {
     flash(`改名失敗：${(err as Error)?.message}`, { error: true })
   }
@@ -74,7 +83,7 @@ async function moveStage(stage: ContactStage, dir: -1 | 1) {
       api(`/api/contact-stages/${stage.id}`, { method: 'PATCH', body: { sortOrder: other.sortOrder } }),
       api(`/api/contact-stages/${other.id}`, { method: 'PATCH', body: { sortOrder: stage.sortOrder } })
     ])
-    await refreshStages()
+    await afterMutation(refreshStages)
   } catch (err: unknown) {
     flash(`排序失敗：${(err as Error)?.message}`, { error: true })
   }
@@ -84,7 +93,7 @@ async function removeStage(stage: ContactStage) {
   if (!window.confirm(`刪除階段「${stage.label}」？名單上已完成的勾選會保留，但不再顯示。`)) return
   try {
     await api(`/api/contact-stages/${stage.id}`, { method: 'DELETE' })
-    await refreshStages()
+    await afterMutation(refreshStages)
   } catch (err: unknown) {
     flash(`刪除階段失敗：${(err as Error)?.message}`, { error: true })
   }
@@ -100,7 +109,7 @@ async function addOption() {
   try {
     await api('/api/contact-options', { method: 'POST', body: { label } })
     newOption.value = ''
-    await refreshOptions()
+    await afterMutation(refreshOptions)
   } catch (err: unknown) {
     flash(`新增人名失敗：${(err as Error)?.message}`, { error: true })
   }
@@ -109,7 +118,7 @@ async function addOption() {
 async function removeOption(option: ContactOption) {
   try {
     await api(`/api/contact-options/${option.id}`, { method: 'DELETE' })
-    await refreshOptions()
+    await afterMutation(refreshOptions)
   } catch (err: unknown) {
     flash(`刪除人名失敗：${(err as Error)?.message}`, { error: true })
   }
@@ -121,7 +130,7 @@ async function addLocation() {
   try {
     await api('/api/contact-locations', { method: 'POST', body: { label } })
     newLocation.value = ''
-    await refreshLocations()
+    await afterMutation(refreshLocations)
   } catch (err: unknown) {
     flash(`新增地點失敗：${(err as Error)?.message}`, { error: true })
   }
@@ -130,7 +139,7 @@ async function addLocation() {
 async function removeLocation(location: ContactLocation) {
   try {
     await api(`/api/contact-locations/${location.id}`, { method: 'DELETE' })
-    await refreshLocations()
+    await afterMutation(refreshLocations)
   } catch (err: unknown) {
     flash(`刪除地點失敗：${(err as Error)?.message}`, { error: true })
   }
