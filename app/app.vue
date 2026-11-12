@@ -24,7 +24,7 @@ const { notice } = useNotice()
     <header class="site-header">
       <div class="site-header__inner">
         <NuxtLink
-          class="site-brand"
+          class="site-brand text-accent text-[1.25rem] font-bold no-underline whitespace-nowrap"
           to="/"
         >名單 CRM</NuxtLink>
         <nav

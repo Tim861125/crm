@@ -6,6 +6,8 @@
 
 - **Bun**：runtime + package manager（`bun --bun nuxt dev`）
 - **Nuxt 4**：無 UI 函式庫，UI 全部自己來（比照 lunch-order 的手繪元件套件）
+- **Tailwind CSS v4**（`@tailwindcss/vite`）：只供**新寫**的樣式使用，既有手繪樣式仍在 `main.css`；
+  不 import preflight、utility 不分層，取捨詳見 `app/assets/css/tailwind.css` 檔首
 - **Drizzle ORM + SQLite**（`bun:sqlite`，檔案在 `data/crm.db`，可用 `NUXT_DB_PATH` 覆寫）
 - **手繪風**：NaikaiFont 字體、rough.js 手繪邊框（`app/components/rough/`）、紙感底色、螢光筆標記（`app/assets/css/main.css`）
 
@@ -45,11 +47,21 @@ bun run db:generate  # 改 schema.ts 後產生遷移 SQL
 bun run db:migrate   # 套用遷移（dev 啟動時也會自動套）
 ```
 
+### 樣式
+
+- 既有手繪樣式與設計記號仍在 `app/assets/css/main.css`（`:root` 的 `--paper`／`--ink`／…，元件類 `.r-*`）。
+- **新寫**的樣式一律用 Tailwind utility 直接寫在樣板上。設計記號已接成 utility：`bg-paper`、`text-ink`、`text-accent`、`text-accent-strong`、`border-ink`、`bg-mark-green`／`-yellow`／`-red`／`-gray`、`font-hand`，值仍取自 `main.css`，不要再另設一套色。
+- 寫法基準範例：`app/app.vue` 的 `.site-brand`（語意錨點留著，樣式全交給 utility）。
+- 檔序為 `main.css` → `tailwind.css` 且兩者都未分層，所以同權重時 utility 勝；但 `.site-nav a`（0,1,1）這類既有規則仍會贏過單一 utility，真要在舊元件上覆蓋就得用更高權重或直接改 `main.css`。
+- `text-xl` 這類字号 utility 會連 `line-height` 一起帶入；只想改字級用 `text-[1.25rem]`。
+
 ### 測試
 
 - `tests/followup.test.ts`、`tests/leadScore.test.ts`：純函式單元測試。
+- `tests/dbMigrations.test.ts`：遷移與連線（`openDatabase`）——全新 DB 套滿遷移、舊自建 runner 的記錄能補記且不重跑遷移、`updatedAt` 由 schema 自動帶。
 - `tests/e2e/api.spec.ts`：**全 API 整合測試**（名單 CRUD/驗證、跟進紀錄回填、階段/選項/地點管理、每日任務冪等與連動刪除），每次執行前清掉獨立 DB `data/crm-test.db` 起一座專屬 server，不動開發 DB。
-- SQLite 雙驅動：bun runtime 用內建 `bun:sqlite`（dev），node runtime（vitest e2e / 部署）用 `better-sqlite3`；`server/db/migrate.ts` 依 runtime 自動選擇並把 bun:sqlite 包成 better-sqlite3 相同形狀。
+- SQLite 雙驅動：bun runtime 用內建 `bun:sqlite` 配 drizzle 的 `bun-sqlite` driver（dev），node runtime（vitest e2e / 部署）用 `better-sqlite3` 配它的 driver；遷移一律走 drizzle 內建 `migrate()`（記錄在 `__drizzle_migrations`）。`server/db/migrate.ts` 依 runtime 選 driver，並把早期自建 runner 留在 `migrations` 表的記錄補記一次，既有 `data/crm.db` 才不會被當成全新資料庫重跑遷移。
+- `contacts.updatedAt` 由 schema 的 `$onUpdateFn` 在 UPDATE 時自動帶，端點不用手写。
 
 手動 API 測試：`crm.http`。
 

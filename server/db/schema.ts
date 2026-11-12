@@ -38,9 +38,12 @@ export const contacts = sqliteTable('contacts', {
   createdAt: integer('created_at')
     .notNull()
     .$defaultFn(() => Math.floor(Date.now() / 1000)),
+  // updatedAt 不用端點手写：drizzle 的 buildUpdateSet 會在 UPDATE 時自動帶入
+  // 有 $onUpdateFn、且未於 set 中出現的欄位
   updatedAt: integer('updated_at')
     .notNull()
     .$defaultFn(() => Math.floor(Date.now() / 1000))
+    .$onUpdateFn(() => Math.floor(Date.now() / 1000))
 }, table => ({
   userIdIdx: index('contacts_user_id_idx').on(table.userId),
   nextFollowUpIdx: index('contacts_next_follow_up_idx').on(table.nextFollowUp)

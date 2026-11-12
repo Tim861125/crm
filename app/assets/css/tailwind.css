@@ -1,0 +1,36 @@
+/* ── Tailwind v4（utility 供新樣式使用，既有手繪樣式維持 main.css）────────
+   三條刻意的取捨，改之前先讀：
+
+   1) 不 import preflight：本專案自帶 reset（main.css 的 *、body、button…）。
+      preflight 會把 button／dialog／list／標題全部重置，手繪 UI 會整片走樣。
+   2) 不加 layer(utilities)：既有 main.css 是「未分層」CSS，而未分層規則無條件勝過
+      @layer 內的規則，utility 會被 `.r-button`、`a { color: inherit }` 這類現有規則壓死。
+      這裡讓 utility 維持未分層，並把本檔排在 css[] 的最後一個（同權重時後來者勝）。
+      代价：main.css 裡的 `.sr-only` 現在由這裡的同名 utility 生效（兩者都是 1px 隱藏，效果相同）。
+   3) 範例：app.vue 的 `.site-brand` 已改用 utility（語意錨點保留），是新樣式的寫法基準。
+*/
+@import 'tailwindcss/theme.css';
+@import 'tailwindcss/utilities.css';
+
+/* 掃描範圍不用寫 @source：自動偵測已涵蓋 app/ 與 shared/。但要把 main.css 所在目錄明確排除——
+   @tailwindcss/vite 會把同批處理的 CSS 內容也當成候選字來源，main.css 裡的
+   `overflow: visible`、`--ease-out` 因此被生成為 utility／theme 記號，
+   而本檔排在 main.css 之後，:root 的 --ease-out 會蓋掉專案自訂的動畫曲線。 */
+@source not "../../../app/assets/css";
+
+/* 設計記號以 main.css 的 :root 為唯一來源，這裡只把它們接成 utility（bg-paper、text-ink、border-ink…）。
+   用 inline 是因為值引用了別的 CSS 變數：不寫 inline 時 utility 會指向此處而非使用處，解析會錯。
+   螢光筆底色取名 mark-*，避免和 Tailwind 內建色盤（bg-green-500 那類）混在一起。 */
+@theme inline {
+  --color-paper: var(--paper);
+  --color-ink: var(--ink);
+  --color-accent: var(--accent);
+  --color-accent-strong: var(--accent-strong);
+  --color-accent-soft: var(--accent-soft);
+  --color-muted: var(--muted);
+  --color-mark-green: var(--green);
+  --color-mark-yellow: var(--yellow);
+  --color-mark-red: var(--red);
+  --color-mark-gray: #e9e6dd;
+  --font-hand: 'NaikaiFont', sans-serif;
+}

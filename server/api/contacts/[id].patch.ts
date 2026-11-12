@@ -16,10 +16,7 @@ export default defineEventHandler(async (event) => {
     throw createError({ statusCode: 404, statusMessage: '找不到這筆名單' })
   }
 
-  const patch: Record<string, unknown> = {
-    ...data,
-    updatedAt: Math.floor(Date.now() / 1000)
-  }
+  const patch: Record<string, unknown> = { ...data }
   if ('followUpFreq' in data) patch.followUpFreq = data.followUpFreq || null
   if ('lastFollowUp' in data) patch.lastFollowUp = data.lastFollowUp || null
   if ('level' in data) patch.level = data.level || null

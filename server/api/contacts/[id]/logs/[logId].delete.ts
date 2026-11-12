@@ -32,8 +32,7 @@ export default defineEventHandler(async (event) => {
       .update(contacts)
       .set({
         lastFollowUp: last,
-        nextFollowUp: computeNextFollowUp(last, contact.followUpFreq),
-        updatedAt: Math.floor(Date.now() / 1000)
+        nextFollowUp: computeNextFollowUp(last, contact.followUpFreq)
       })
       .where(eq(contacts.id, contactId))
   }

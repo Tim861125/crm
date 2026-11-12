@@ -23,11 +23,13 @@
   "devDependencies": {
     "@nuxt/eslint": "^1.16.0",
     "@nuxt/test-utils": "^4.3.4",
+    "@tailwindcss/vite": "^4.3.5",
     "@types/better-sqlite3": "^9.6.0",
     "@types/bun": "^1.4.4",
     "drizzle-kit": "^0.31.10",
     "eslint": "^10.5.0",
     "puppeteer-core": "^25.16.0",
+    "tailwindcss": "^4.3.5",
     "typescript": "^6.0.3",
     "vitest": "^3.2.4",
     "vue-tsc": "^3.3.5"

@@ -18,9 +18,8 @@ export default defineEventHandler(async (event) => {
       info: data.info || null,
       level: data.level || null,
       status: data.status || null,
-      note: data.note || null,
-      createdAt: Math.floor(Date.now() / 1000),
-      updatedAt: Math.floor(Date.now() / 1000)
+      note: data.note || null
+      // createdAt／updatedAt 不由端點給：schema 的 $defaultFn 會在 insert 時補上
     })
     .returning()
 
