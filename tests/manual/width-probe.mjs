@@ -15,10 +15,14 @@ await page.setViewport({ width: 1280, height: 900 })
 const errors = []
 page.on('pageerror', e => errors.push(e.message.slice(0, 200)))
 
-// 取得頁面上所有可輸入欄位的資訊（label 文字方便辨識）
-const fieldInfo = `
+// 取得頁面上所有「可見」輸入欄位（label 文字方便辨識）
+// 過濾隱藏欄位：常挂载但關閉中的 dialog 內 input focus() 會靜默失敗，
+// 鍵入會漏進當前焦點（如搜尋框）造成誤判
+const INPUT_SEL = 'input:not([type=hidden]):not([type=checkbox]):not([type=radio]), textarea'
+const fieldInfo = sel => `
   (function () {
-    const els = [...document.querySelectorAll('input:not([type=hidden]):not([type=checkbox]):not([type=radio]), textarea')];
+    const els = [...document.querySelectorAll(${JSON.stringify(sel)})]
+      .filter(el => el.getClientRects().length > 0);
     return els.map((el, i) => {
       const root = el.closest('label') ?? el.parentElement;
       const label = (root?.querySelector('span')?.textContent ?? el.placeholder ?? el.type ?? '').trim();
@@ -31,30 +35,34 @@ const fieldInfo = `
 `
 
 async function measure() {
-  return page.evaluate(`(${fieldInfo})()`)
+  return page.evaluate(`(${fieldInfo(INPUT_SEL)})()`)
 }
 
 // 對第 idx 個欄位輸入一段長文字，再還原原值
 async function typeAndMeasure(idx, text) {
   const before = await measure()
   const f = before[idx]
-  await page.evaluate((i) => {
-    const els = [...document.querySelectorAll('input:not([type=hidden]):not([type=checkbox]):not([type=radio]), textarea')]
+  await page.evaluate((i, sel) => {
+    const els = [...document.querySelectorAll(sel)]
+      .filter(el => el.getClientRects().length > 0)
     els[i].focus()
-  }, idx)
+  }, idx, INPUT_SEL)
   await sleep(150)
-  await page.keyboard.down('Meta'); await page.keyboard.press('KeyA'); await page.keyboard.up('Meta')
+  await page.keyboard.down('Meta')
+  await page.keyboard.press('KeyA')
+  await page.keyboard.up('Meta')
   await page.keyboard.type(f.type === 'date' ? '12152026' : text, { delay: 5 })
   await sleep(250)
   const after = await measure()
   const a = after[idx]
   // 還原原值（直接觸發 input 事件讓 v-model 更新）
-  await page.evaluate((i, orig) => {
-    const els = [...document.querySelectorAll('input:not([type=hidden]):not([type=checkbox]):not([type=radio]), textarea')]
+  await page.evaluate((i, orig, sel) => {
+    const els = [...document.querySelectorAll(sel)]
+      .filter(el => el.getClientRects().length > 0)
     const el = els[i]
     el.value = orig
     el.dispatchEvent(new Event('input', { bubbles: true }))
-  }, idx, f.value ?? '')
+  }, idx, f.value ?? '', INPUT_SEL)
   await sleep(150)
   const restored = (await measure())[idx]
   return {
@@ -84,18 +92,36 @@ await probePage('總名單 /')
 
 // 明細 modal
 await probePage('明細 modal', async () => {
-  await page.click('button[title="明細"]')
+  await page.click('button[aria-label$="的明細"]')
   await sleep(1000)
 })
 await page.keyboard.press('Escape')
 await sleep(500)
 
-// 管理階段／選項 modal（只測「新增」輸入框：列表 rename 會即時寫 DB，跳過）
-await probePage('選項管理 modal（新增框）', async () => {
+// 三個管理 dialog（只測「新增」輸入框：列表 rename 會即時寫 DB，跳過）
+async function clickByText(text) {
   for (const b of await page.$$('button')) {
     const t = await b.evaluate(el => el.textContent.trim())
-    if (t.includes('管理階段／選項')) { await b.click(); break }
+    if (t === text) {
+      await b.click()
+      return
+    }
   }
+}
+await probePage('階段管理 dialog（新增框）', async () => {
+  await page.click('button[title="點擊管理進度階段"]')
+  await sleep(800)
+})
+await page.keyboard.press('Escape')
+await sleep(400)
+await probePage('地點管理 dialog（新增框）', async () => {
+  await page.click('button[title="點擊管理地點選項"]')
+  await sleep(800)
+})
+await page.keyboard.press('Escape')
+await sleep(400)
+await probePage('人名選項管理 dialog（新增框）', async () => {
+  await clickByText('管理人名選項')
   await sleep(800)
 })
 await page.keyboard.press('Escape')
@@ -112,7 +138,7 @@ await page.goto(APP, { waitUntil: 'networkidle0', timeout: 30000 })
 await sleep(800)
 await probePage('【窄螢幕】總名單 /')
 await probePage('【窄螢幕】明細 modal', async () => {
-  await page.click('button[title="明細"]')
+  await page.click('button[aria-label$="的明細"]')
   await sleep(1000)
 })
 

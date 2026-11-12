@@ -36,7 +36,10 @@ for (const c of combos) {
   await sleep(400)
   // 選最後一個 option（通常較長或不同長度）
   const opts = await page.$$('[role="option"]')
-  if (!opts.length) { console.log(`[${c.label}] 無 option`); continue }
+  if (!opts.length) {
+    console.log(`[${c.label}] 無 option`)
+    continue
+  }
   const texts = await Promise.all(opts.map(o => o.evaluate(el => el.textContent.trim())))
   const longest = texts.reduce((a, b, bi, arr) => b.length > arr[a].length ? bi : a, 0)
   await opts[longest].click().catch(() => {})
@@ -46,7 +49,10 @@ for (const c of combos) {
   await back[c.i].click()
   await sleep(300)
   const o2 = await page.$$('[role="option"]')
-  if (o2[0]) { await o2[0].click().catch(() => {}); await sleep(300) } // 選回第一項（－）还原
+  if (o2[0]) {
+    await o2[0].click().catch(() => {})
+    await sleep(300)
+  } // 選回第一項（－）还原
   const rest = (await measure())[c.i]
   console.log(
     `${Math.abs(after.w - c.w) > 0.5 ? '✗ 變形' : '  穩定'}  [${c.label}] ${c.text}(${c.w}) → 「${texts[longest]}」(${after.w})｜還原(${rest.w})`
