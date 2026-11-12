@@ -21,7 +21,7 @@ const emit = defineEmits<{ detail: [contact: Contact] }>()
 
 const { flash } = useNotice()
 
-const { data: contacts, refresh: refreshContacts } = useFetch<Contact[]>('/api/contacts', { default: () => [] })
+const { data: contacts, status, refresh: refreshContacts } = useFetch<Contact[]>('/api/contacts', { default: () => [] })
 
 // 頁面 tick 變動（明細 modal 儲存後）→ 重抓
 watch(() => props.tick, () => refreshContacts())
@@ -35,8 +35,13 @@ const followUps = computed(() =>
     .sort((a, b) => b.score - a.score)
 )
 
+// 處理中的 contact id：防止連點「跟進完成」重複記一筆
+const doneQueue = ref<Set<number>>(new Set())
+
 async function markDone(entry: { contact: Contact }) {
   const c = entry.contact
+  if (doneQueue.value.has(c.id)) return
+  doneQueue.value = new Set(doneQueue.value).add(c.id)
   try {
     await api<FollowUpLog>(`/api/contacts/${c.id}/logs`, {
       method: 'POST',
@@ -47,6 +52,10 @@ async function markDone(entry: { contact: Contact }) {
     props.refresh?.()
   } catch (err: unknown) {
     flash(`記錄跟進失敗：${(err as Error)?.message}`, { error: true })
+  } finally {
+    const next = new Set(doneQueue.value)
+    next.delete(c.id)
+    doneQueue.value = next
   }
 }
 
@@ -76,7 +85,13 @@ const visible = computed(() =>
       <div class="follow-row__content">
         <div class="follow-row__meta">
           <RBadge tone="yellow">
-            {{ idx === 0 ? '🥇' : idx === 1 ? '🥈' : idx === 2 ? '🥉' : item.score }}
+            <template v-if="idx < 3">
+              <span aria-hidden="true">{{ ['🥇', '🥈', '🥉'][idx] }}</span>
+              <span class="sr-only">熱度第 {{ idx + 1 }} 名，分數 {{ item.score }}</span>
+            </template>
+            <template v-else>
+              {{ item.score }}
+            </template>
           </RBadge>
 
           <button
@@ -110,9 +125,11 @@ const visible = computed(() =>
 
         <RButton
           variant="primary"
+          :disabled="doneQueue.has(item.contact.id)"
+          :aria-label="`記「${item.contact.name}」今天跟進完成`"
           @click="markDone(item)"
         >
-          跟進完成
+          {{ doneQueue.has(item.contact.id) ? '記錄中…' : '跟進完成' }}
         </RButton>
       </div>
     </RoughFrame>
@@ -121,11 +138,18 @@ const visible = computed(() =>
       v-if="followUps.length > STEP"
       type="button"
       class="show-more-button"
+      :aria-expanded="showAll"
       @click="showAll = !showAll"
     >
       {{ showAll ? '收摺 ▲' : `還有 ${followUps.length - STEP} 位… ▼` }}
     </button>
   </div>
+
+  <RCard v-else-if="status === 'pending'">
+    <div class="empty-state">
+      載入中…
+    </div>
+  </RCard>
 
   <RCard v-else>
     <div class="empty-state">

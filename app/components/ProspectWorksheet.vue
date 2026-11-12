@@ -19,7 +19,7 @@ const props = defineProps<{ tick?: number }>()
 const { flash } = useNotice()
 
 // ── 資料 ─────────────────────────────────────────────────────
-const { data: prospects, refresh: refreshProspects } = useFetch<Prospect[]>('/api/prospects', { default: () => [] })
+const { data: prospects, status: prospectsStatus, refresh: refreshProspects } = useFetch<Prospect[]>('/api/prospects', { default: () => [] })
 const { data: contacts, refresh: refreshContacts } = useFetch<Contact[]>('/api/contacts', { default: () => [] })
 
 // 頁面 tick 變動（明細 modal 儲存後）→ 全部重抓
@@ -116,6 +116,7 @@ async function patchContact(c: Contact, key: 'level' | 'status', value: string) 
       >
         <RSelect
           v-model="picking[section]"
+          :aria-label="`加入「${PROSPECT_SECTION_META[section].title}」區塊的名單對象`"
           :options="contactItems"
         />
         <RButton
@@ -165,6 +166,7 @@ async function patchContact(c: Contact, key: 'level' | 'status', value: string) 
                 class="cell-input"
                 :value="row.contact.status ?? ''"
                 placeholder="狀態…"
+                :aria-label="`「${row.contact.name}」的狀態`"
                 @change="patchContact(row.contact, 'status', ($event.target as HTMLInputElement).value)"
               >
             </td>
@@ -174,6 +176,7 @@ async function patchContact(c: Contact, key: 'level' | 'status', value: string) 
                 class="cell-input cell-input--wide"
                 type="date"
                 :value="row.date ?? ''"
+                :aria-label="`「${row.contact.name}」這一列的跟進日期`"
                 @change="patchRow(row, ($event.target as HTMLInputElement).value || null)"
               >
             </td>
@@ -183,6 +186,7 @@ async function patchContact(c: Contact, key: 'level' | 'status', value: string) 
                 type="button"
                 class="row-step row-step--danger"
                 title="移出區塊"
+                :aria-label="`將「${row.contact.name}」移出${PROSPECT_SECTION_META[section].title}`"
                 @click="removeRow(row)"
               >
                 ×
@@ -190,7 +194,15 @@ async function patchContact(c: Contact, key: 'level' | 'status', value: string) 
             </td>
           </tr>
 
-          <tr v-if="!bySection(section).length">
+          <tr v-if="prospectsStatus === 'pending' && !prospects.length">
+            <td
+              colspan="6"
+              class="empty-cell"
+            >
+              載入中…
+            </td>
+          </tr>
+          <tr v-else-if="!bySection(section).length">
             <td
               colspan="6"
               class="empty-cell"

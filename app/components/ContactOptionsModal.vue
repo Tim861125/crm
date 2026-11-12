@@ -46,8 +46,16 @@ async function addStage() {
   }
 }
 
-async function renameStage(stage: ContactStage, label: string) {
-  if (!label.trim() || label === stage.label) return
+// 改名採本地草稿：避免每個鍵入都發 PATCH（且 refresh 會打斷輸入），失焦或 Enter 才提交
+const stageDrafts = ref<Record<number, string>>({})
+
+async function commitRename(stage: ContactStage) {
+  const label = stageDrafts.value[stage.id]
+  if (label === undefined) return
+  stageDrafts.value = Object.fromEntries(
+    Object.entries(stageDrafts.value).filter(([k]) => k !== String(stage.id))
+  )
+  if (!label.trim() || label.trim() === stage.label) return
   try {
     await api(`/api/contact-stages/${stage.id}`, { method: 'PATCH', body: { label: label.trim() } })
     await refreshStages()
@@ -139,12 +147,17 @@ async function removeLocation(location: ContactLocation) {
     <RTabs
       v-model="section"
       :tabs="tabs"
+      base-id="optmgr"
     />
 
     <!-- 進度階段 -->
     <div
       v-if="section === 'stages'"
+      id="optmgr-panel-stages"
       class="tab-panel"
+      role="tabpanel"
+      aria-labelledby="optmgr-tab-stages"
+      tabindex="0"
     >
       <form
         class="inline-form"
@@ -153,6 +166,7 @@ async function removeLocation(location: ContactLocation) {
         <div class="grow-input">
           <RInput
             v-model="newStage"
+            aria-label="新階段名稱"
             placeholder="新階段名稱…"
             @keydown.enter.prevent="addStage"
           />
@@ -178,14 +192,18 @@ async function removeLocation(location: ContactLocation) {
             {{ i + 1 }}
           </RBadge>
           <RInput
-            :model-value="s.label"
-            @update:model-value="v => renameStage(s, String(v))"
+            :model-value="stageDrafts[s.id] ?? s.label"
+            :aria-label="`階段名稱：${s.label}`"
+            @update:model-value="v => (stageDrafts[s.id] = String(v))"
+            @blur="commitRename(s)"
+            @keydown.enter.prevent="commitRename(s)"
           />
           <button
             type="button"
             class="row-step"
             :disabled="i === 0"
             title="上移"
+            :aria-label="`上移階段「${s.label}」`"
             @click="moveStage(s, -1)"
           >
             ↑
@@ -195,6 +213,7 @@ async function removeLocation(location: ContactLocation) {
             class="row-step"
             :disabled="i === stages!.length - 1"
             title="下移"
+            :aria-label="`下移階段「${s.label}」`"
             @click="moveStage(s, 1)"
           >
             ↓
@@ -203,6 +222,7 @@ async function removeLocation(location: ContactLocation) {
             type="button"
             class="row-step row-step--danger"
             title="刪除"
+            :aria-label="`刪除階段「${s.label}」`"
             @click="removeStage(s)"
           >
             ×
@@ -220,7 +240,11 @@ async function removeLocation(location: ContactLocation) {
     <!-- 人名選項 -->
     <div
       v-else-if="section === 'options'"
+      id="optmgr-panel-options"
       class="tab-panel"
+      role="tabpanel"
+      aria-labelledby="optmgr-tab-options"
+      tabindex="0"
     >
       <form
         class="inline-form"
@@ -229,6 +253,7 @@ async function removeLocation(location: ContactLocation) {
         <div class="grow-input">
           <RInput
             v-model="newOption"
+            aria-label="新的人名"
             placeholder="新的人名…"
             @keydown.enter.prevent="addOption"
           />
@@ -252,6 +277,7 @@ async function removeLocation(location: ContactLocation) {
             type="button"
             class="chip-remove"
             title="刪除"
+            :aria-label="`刪除人名「${o.label}」`"
             @click="removeOption(o)"
           >×</button>
         </span>
@@ -265,7 +291,11 @@ async function removeLocation(location: ContactLocation) {
     <!-- 地點選項 -->
     <div
       v-else
+      id="optmgr-panel-locations"
       class="tab-panel"
+      role="tabpanel"
+      aria-labelledby="optmgr-tab-locations"
+      tabindex="0"
     >
       <form
         class="inline-form"
@@ -274,6 +304,7 @@ async function removeLocation(location: ContactLocation) {
         <div class="grow-input">
           <RInput
             v-model="newLocation"
+            aria-label="新的地點"
             placeholder="新的地點…"
             @keydown.enter.prevent="addLocation"
           />
@@ -297,6 +328,7 @@ async function removeLocation(location: ContactLocation) {
             type="button"
             class="chip-remove"
             title="刪除"
+            :aria-label="`刪除地點「${l.label}」`"
             @click="removeLocation(l)"
           >×</button>
         </span>

@@ -28,7 +28,9 @@ function refreshAll() {
 
     <section>
       <div class="page-heading">
-        <h1>每日任務四區塊</h1>
+        <h2 class="page-heading__sub">
+          每日任務四區塊
+        </h2>
         <p>開發／預備／五人／織網，四張名單卡 🌱</p>
       </div>
 

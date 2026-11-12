@@ -22,7 +22,7 @@ import {
 const { flash } = useNotice()
 
 // ── 資料 ─────────────────────────────────────────────────────
-const { data: contacts, refresh: refreshContacts } = useFetch('/api/contacts', { default: () => [] })
+const { data: contacts, status: contactsStatus, error: contactsError, refresh: refreshContacts } = useFetch('/api/contacts', { default: () => [] })
 const { data: stages } = useFetch('/api/contact-stages', { default: () => [] })
 const { data: locations } = useFetch('/api/contact-locations', { default: () => [] })
 
@@ -144,6 +144,12 @@ const editingValue = ref('')
 function startEdit(c: Contact, field: 'name' | 'contact' | 'location') {
   editingKey.value = `${field}-${c.id}`
   editingValue.value = field === 'name' ? c.name : field === 'contact' ? c.contact ?? '' : c.location ?? ''
+  // 進入編輯後聚焦輸入框（巨集按新增時直接打字；鍵盤操作不需再點一次）
+  void nextTick(() => {
+    const input = document.querySelector<HTMLInputElement>(`input.cell-input[data-edit="${editingKey.value}"]`)
+    input?.focus()
+    input?.select()
+  })
 }
 
 function commitEdit(c: Contact, field: 'name' | 'contact' | 'location') {
@@ -154,7 +160,10 @@ function commitEdit(c: Contact, field: 'name' | 'contact' | 'location') {
 }
 
 function cancelEdit() {
+  const key = editingKey.value
   editingKey.value = null
+  // Esc 取消後把焦點還給原儲存格按鈕，鍵盤操作不斷線
+  void nextTick(() => document.querySelector<HTMLButtonElement>(`button.cell-edit[data-edit-target="${key}"]`)?.focus())
 }
 
 // ── 進度階段切換 ─────────────────────────────────────────────
@@ -166,13 +175,19 @@ function toggleStage(c: Contact, stageId: number) {
 }
 
 // ── 新增 / 刪除名單 ──────────────────────────────────────────
+const adding = ref(false)
+
 async function addContact() {
+  if (adding.value) return // 防止連點重複建立
+  adding.value = true
   try {
     const created = await api<Contact>('/api/contacts', { method: 'POST', body: { name: '新名單' } })
     await refreshContacts()
     startEdit(created, 'name') // 建立後直接進入姓名編輯
   } catch (err: unknown) {
     flash(`新增名單失敗：${(err as Error)?.message}`, { error: true })
+  } finally {
+    adding.value = false
   }
 }
 
@@ -209,14 +224,17 @@ function onEditKeydown(e: KeyboardEvent) {
       <div class="list-search">
         <RInput
           v-model="search"
+          type="search"
+          aria-label="搜尋姓名或聯絡方式"
           placeholder="搜尋姓名／聯絡方式…"
         />
       </div>
       <RButton
         variant="primary"
+        :disabled="adding"
         @click="addContact"
       >
-        新增名單
+        {{ adding ? '新增中…' : '新增名單' }}
       </RButton>
       <RButton @click="optionsOpen = true">
         管理階段／選項
@@ -240,8 +258,13 @@ function onEditKeydown(e: KeyboardEvent) {
       </button>
     </div>
 
-    <!-- 名單表格（手機可橫滑） -->
-    <div class="list-scroll">
+    <!-- 名單表格（手機可橫滑；tabindex 讓鍵盤也能捲動此區域） -->
+    <div
+      class="list-scroll"
+      tabindex="0"
+      role="region"
+      aria-label="名單表格，可橫向捲動"
+    >
       <table class="r-table">
         <thead>
           <tr>
@@ -251,6 +274,7 @@ function onEditKeydown(e: KeyboardEvent) {
                 type="button"
                 class="th-filter"
                 :class="{ 'is-active': !!stepFilterValueLabel }"
+                :aria-label="stepFilterValueLabel ? `進度篩選：${stepFilterValueLabel}，點擊換下一個` : '依進度篩選：全部，點擊開始循環階段'"
                 title="點擊循環：全部 → 各階段"
                 @click="cycleStepFilter"
               >
@@ -261,6 +285,7 @@ function onEditKeydown(e: KeyboardEvent) {
               <div class="th-select">
                 <RSelect
                   v-model="locationFilter"
+                  aria-label="依地點篩選"
                   :options="locationFilterItems"
                 />
               </div>
@@ -271,23 +296,27 @@ function onEditKeydown(e: KeyboardEvent) {
                 type="button"
                 class="th-filter"
                 :class="{ 'is-active': freqFilter !== 'all' }"
+                :aria-label="freqFilter === 'all' ? '依跟進頻率篩選：全部，點擊開始循環' : `跟進頻率篩選：${FOLLOW_UP_FREQ_SHORT[freqFilter] || freqFilter}，點擊換下一個`"
                 title="點擊循環頻率篩選"
                 @click="cycleFreqFilter"
               >
                 {{ freqFilter === 'all' ? '跟進' : FOLLOW_UP_FREQ_SHORT[freqFilter] || freqFilter }}
               </button>
             </th>
-            <th>
+            <th :aria-sort="sortByNext ? 'descending' : undefined">
               <button
                 type="button"
                 class="th-filter"
                 :class="{ 'is-active': sortByNext }"
+                :aria-pressed="sortByNext"
+                aria-label="依下次跟進日排序"
                 title="依下次跟進日排序"
                 @click="sortByNext = !sortByNext"
               >
                 下次跟進 <span
                   class="sort-arrow"
                   :class="{ 'is-off': !sortByNext }"
+                  aria-hidden="true"
                 >↓</span>
               </button>
               <button
@@ -295,6 +324,8 @@ function onEditKeydown(e: KeyboardEvent) {
                 type="button"
                 class="overdue-toggle"
                 :class="{ 'is-active': overdueOnly }"
+                :aria-pressed="overdueOnly"
+                :aria-label="`只看逾期（${stats.overdue} 位）`"
                 title="只看逾期"
                 @click="overdueOnly = !overdueOnly"
               >
@@ -316,6 +347,8 @@ function onEditKeydown(e: KeyboardEvent) {
                 <input
                   v-model="editingValue"
                   class="cell-input"
+                  :data-edit="`name-${c.id}`"
+                  aria-label="編輯姓名"
                   @blur="commitEdit(c, 'name')"
                   @keydown="onEditKeydown"
                 >
@@ -324,6 +357,9 @@ function onEditKeydown(e: KeyboardEvent) {
                 <button
                   type="button"
                   class="cell-edit"
+                  :data-edit-target="`name-${c.id}`"
+                  :aria-label="`編輯姓名「${c.name}」`"
+                  title="點擊編輯姓名"
                   @click="startEdit(c, 'name')"
                 >
                   {{ c.name }}
@@ -346,6 +382,8 @@ function onEditKeydown(e: KeyboardEvent) {
                   type="button"
                   class="stage-chip"
                   :class="{ 'is-done': c.completedStages.includes(s.id) }"
+                  :aria-pressed="c.completedStages.includes(s.id)"
+                  :aria-label="`「${c.name}」階段「${s.label}」：${c.completedStages.includes(s.id) ? '已完成' : '未完成'}，點擊切換`"
                   :title="`切換階段「${s.label}」`"
                   @click="toggleStage(c, s.id)"
                 >
@@ -364,7 +402,9 @@ function onEditKeydown(e: KeyboardEvent) {
                 <input
                   v-model="editingValue"
                   class="cell-input"
+                  :data-edit="`location-${c.id}`"
                   list="location-options"
+                  aria-label="編輯地點"
                   @blur="commitEdit(c, 'location')"
                   @keydown="onEditKeydown"
                 >
@@ -373,6 +413,9 @@ function onEditKeydown(e: KeyboardEvent) {
                 <button
                   type="button"
                   class="cell-edit cell-edit--plain"
+                  :data-edit-target="`location-${c.id}`"
+                  :aria-label="`編輯「${c.name}」的地點：${c.location ?? '未設定'}`"
+                  title="點擊編輯地點"
                   @click="startEdit(c, 'location')"
                 >
                   {{ c.location ?? '－' }}
@@ -386,6 +429,8 @@ function onEditKeydown(e: KeyboardEvent) {
                 <input
                   v-model="editingValue"
                   class="cell-input cell-input--wide"
+                  :data-edit="`contact-${c.id}`"
+                  aria-label="編輯聯絡方式"
                   @blur="commitEdit(c, 'contact')"
                   @keydown="onEditKeydown"
                 >
@@ -394,6 +439,9 @@ function onEditKeydown(e: KeyboardEvent) {
                 <button
                   type="button"
                   class="cell-edit cell-edit--plain"
+                  :data-edit-target="`contact-${c.id}`"
+                  :aria-label="`編輯「${c.name}」的聯絡方式：${c.contact ?? '未設定'}`"
+                  title="點擊編輯聯絡方式"
                   @click="startEdit(c, 'contact')"
                 >
                   {{ c.contact ?? '－' }}
@@ -432,11 +480,15 @@ function onEditKeydown(e: KeyboardEvent) {
 
             <!-- 動作 -->
             <td style="white-space: nowrap">
-              <RButton @click="detailContact = c">
+              <RButton
+                :aria-label="`開啟「${c.name}」的明細`"
+                @click="detailContact = c"
+              >
                 明細
               </RButton>
               <RButton
                 variant="danger"
+                :aria-label="`刪除「${c.name}」`"
                 @click="removeContact(c)"
               >
                 刪除
@@ -444,7 +496,30 @@ function onEditKeydown(e: KeyboardEvent) {
             </td>
           </tr>
 
-          <tr v-if="!filtered.length">
+          <tr v-if="contactsStatus === 'pending' && !filtered.length">
+            <td
+              colspan="7"
+              class="empty-cell"
+            >
+              載入中…
+            </td>
+          </tr>
+          <tr v-else-if="contactsError">
+            <td
+              colspan="7"
+              class="empty-cell"
+            >
+              名單載入失敗
+              <button
+                type="button"
+                class="link-button"
+                @click="refreshContacts()"
+              >
+                重新整理
+              </button>
+            </td>
+          </tr>
+          <tr v-else-if="!filtered.length">
             <td
               colspan="7"
               class="empty-cell"
@@ -452,8 +527,21 @@ function onEditKeydown(e: KeyboardEvent) {
               <template v-if="search">
                 找不到符合「{{ search }}」的名單
               </template>
+              <template v-else-if="hasActiveFilter">
+                目前篩選条件下沒有名單
+              </template>
               <template v-else>
                 還沒有任何人名 🔍 按上面的「新增名單」開始
+              </template>
+              <template v-if="hasActiveFilter">
+                ·
+                <button
+                  type="button"
+                  class="link-button"
+                  @click="clearAllFilters"
+                >
+                  清除所有篩選
+                </button>
               </template>
             </td>
           </tr>

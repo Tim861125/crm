@@ -17,6 +17,10 @@ const { notice } = useNotice()
 
 <template>
   <div class="app-shell">
+    <a
+      class="skip-link"
+      href="#main"
+    >跳到主要內容</a>
     <header class="site-header">
       <div class="site-header__inner">
         <NuxtLink
@@ -39,7 +43,11 @@ const { notice } = useNotice()
       </div>
     </header>
 
-    <main class="page-content">
+    <main
+      id="main"
+      class="page-content"
+      tabindex="-1"
+    >
       <NuxtPage />
     </main>
 

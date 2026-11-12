@@ -46,11 +46,21 @@ const form = ref<Record<string, string>>({})
 // 原生 select 允許空字串 value（不像 reka 會 throw），「－」清項直接以 '' 表示
 const withNone = (items: { label: string, value: string }[]) => [{ label: '－', value: '' }, ...items]
 
+// 未儲存變更偵測：關閉（Esc／背景／關閉鈕）前提示，避免誤丟編輯
+const baseline = ref<Record<string, string>>({})
+const dirty = computed(() =>
+  EDITABLE_FIELDS.some(k => (form.value[k] ?? '') !== (baseline.value[k] ?? ''))
+)
+function guardClose(): boolean {
+  return !dirty.value || window.confirm('還有未儲存的修改，確定要關閉嗎？')
+}
+
 watch([open, () => contact.value?.id], ([o]) => {
   if (o && contact.value) {
     form.value = Object.fromEntries(
       EDITABLE_FIELDS.map(k => [k, contact.value![k as keyof Contact] as string | null ?? ''])
     )
+    baseline.value = { ...form.value }
   }
 })
 
@@ -72,6 +82,7 @@ async function save() {
     emit('refresh')
     flash(`已儲存「${updated.name}」`)
     contact.value = updated
+    baseline.value = { ...form.value } // 剛存過的內容不算未儲存變更
   } catch (err: unknown) {
     flash(`儲存失敗：${(err as Error)?.message}`, { error: true })
   } finally {
@@ -155,6 +166,7 @@ const levelItems = LEVEL_OPTIONS.map(v => ({ label: v, value: v }))
     class="detail-dialog"
     :open="open"
     :title="contact?.name"
+    :guard="guardClose"
     @update:open="open = $event"
   >
     <div v-if="contact">
@@ -259,10 +271,12 @@ const levelItems = LEVEL_OPTIONS.map(v => ({ label: v, value: v }))
           <RInput
             v-model="logDate"
             type="date"
+            aria-label="跟進日期"
           />
           <div class="log-form__content">
             <RInput
               v-model="logContent"
+              aria-label="跟進內容"
               placeholder="跟進內容…"
             />
           </div>
@@ -295,6 +309,7 @@ const levelItems = LEVEL_OPTIONS.map(v => ({ label: v, value: v }))
               type="button"
               class="row-step row-step--danger"
               title="刪除紀錄"
+              :aria-label="`刪除 ${log.date} 的跟進紀錄`"
               @click="removeLog(log)"
             >
               ×
