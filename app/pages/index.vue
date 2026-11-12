@@ -4,11 +4,11 @@ useSeoMeta({ title: '總名單' })
 </script>
 
 <template>
-  <UContainer class="py-6 sm:py-10 px-3 sm:px-6">
+  <div>
     <ContactList />
 
-    <p class="mt-8 text-center text-sm text-muted opacity-70">
+    <p class="page-footnote">
       ✏️ 名單 CRM — 邊用邊畫、順手記錄每一次跟進
     </p>
-  </UContainer>
+  </div>
 </template>

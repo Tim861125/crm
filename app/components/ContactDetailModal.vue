@@ -1,4 +1,9 @@
 <script setup lang="ts">
+import RBadge from '../components/rough/RBadge.vue'
+import RButton from '../components/rough/RButton.vue'
+import RDialog from '../components/rough/RDialog.vue'
+import RInput from '../components/rough/RInput.vue'
+import RSelect from '../components/rough/RSelect.vue'
 import {
   api,
   FOLLOW_UP_FREQ_OPTIONS,
@@ -15,7 +20,7 @@ const contact = defineModel<Contact | null>('contact', { default: null })
 
 const emit = defineEmits<{ refresh: [] }>()
 
-const toast = useToast()
+const { flash } = useNotice()
 const open = computed({
   get: () => contact.value != null,
   set: v => !v && (contact.value = null)
@@ -38,19 +43,13 @@ const EDITABLE_FIELDS = [
 // 表單草稿：每次「打開 modal」或「換人」時重置為當前資料（比照舊版 open watch 行為）
 const form = ref<Record<string, string>>({})
 
-// USelect（reka）不允許空字串 value —— 空字串會被當成「未選/placeholder」而 throw。
-// 可清空的下拉一律以哨兵代空值（開啟時 '' → NONE、存檔時 NONE/'' → null）。
-const NONE = '__none__'
-const SELECT_FIELDS = new Set(['location', 'friendOf', 'devPartner', 'level', 'followUpFreq'])
-const withNone = (items: { label: string, value: string }[]) => [{ label: '－', value: NONE }, ...items]
+// 原生 select 允許空字串 value（不像 reka 會 throw），「－」清項直接以 '' 表示
+const withNone = (items: { label: string, value: string }[]) => [{ label: '－', value: '' }, ...items]
 
 watch([open, () => contact.value?.id], ([o]) => {
   if (o && contact.value) {
     form.value = Object.fromEntries(
-      EDITABLE_FIELDS.map((k) => {
-        const v = contact.value![k as keyof Contact] as string | null ?? ''
-        return [k, SELECT_FIELDS.has(k) && !v ? NONE : v]
-      })
+      EDITABLE_FIELDS.map(k => [k, contact.value![k as keyof Contact] as string | null ?? ''])
     )
   }
 })
@@ -60,21 +59,21 @@ const saving = ref(false)
 async function save() {
   const c = contact.value
   if (!c) return
-  // '' / NONE → null；後端會重算 nextFollowUp
+  // '' → null；後端會重算 nextFollowUp
   const body = Object.fromEntries(
     EDITABLE_FIELDS.map((k) => {
       const v = (form.value[k] ?? '').trim()
-      return [k, !v || v === NONE ? null : v]
+      return [k, v || null]
     })
   )
   saving.value = true
   try {
     const updated = await api<Contact>(`/api/contacts/${c.id}`, { method: 'PATCH', body })
     emit('refresh')
-    toast.add({ title: `已儲存「${updated.name}」`, color: 'neutral' })
+    flash(`已儲存「${updated.name}」`)
     contact.value = updated
   } catch (err: unknown) {
-    toast.add({ title: '儲存失敗', description: (err as Error)?.message, color: 'error' })
+    flash(`儲存失敗：${(err as Error)?.message}`, { error: true })
   } finally {
     saving.value = false
   }
@@ -89,7 +88,7 @@ async function refreshLogs() {
   try {
     logs.value = await api<FollowUpLog[]>(`/api/contacts/${contact.value.id}/logs`)
   } catch (err: unknown) {
-    toast.add({ title: '載入跟進紀錄失敗', description: (err as Error)?.message, color: 'error' })
+    flash(`載入跟進紀錄失敗：${(err as Error)?.message}`, { error: true })
   }
 }
 
@@ -113,7 +112,7 @@ async function addLog() {
     refreshLogs()
     emit('refresh')
   } catch (err: unknown) {
-    toast.add({ title: '新增跟進紀錄失敗', description: (err as Error)?.message, color: 'error' })
+    flash(`新增跟進紀錄失敗：${(err as Error)?.message}`, { error: true })
   }
 }
 
@@ -124,7 +123,7 @@ async function removeLog(log: FollowUpLog) {
     refreshLogs()
     emit('refresh') // 後端回算了 last/nextFollowUp，讓清單同步重抓
   } catch (err: unknown) {
-    toast.add({ title: '刪除跟進紀錄失敗', description: (err as Error)?.message, color: 'error' })
+    flash(`刪除跟進紀錄失敗：${(err as Error)?.message}`, { error: true })
   }
 }
 
@@ -137,7 +136,6 @@ const locationItems = computed(() =>
 )
 
 // 「誰的朋友／開發夥伴」人名選項（含現值，避免現有自由文字搜不到）
-// 空值項由 withNone 統一加上（reka 不允許空字串 value，不在此處放 '' item）
 const optionItems = computed(() => {
   const set = new Set<string>()
   for (const o of personOptions.value || []) set.add(o.label)
@@ -153,191 +151,163 @@ const levelItems = LEVEL_OPTIONS.map(v => ({ label: v, value: v }))
 </script>
 
 <template>
-  <UModal
-    v-model:open="open"
-    :title="contact?.name ?? ''"
-    :ui="{ content: 'max-w-2xl' }"
+  <RDialog
+    class="detail-dialog"
+    :open="open"
+    :title="contact?.name"
+    @update:open="open = $event"
   >
-    <template #body>
-      <div
-        v-if="contact"
-        class="space-y-5"
-      >
-        <!-- 欄位表單 -->
-        <div class="grid grid-cols-2 gap-x-4 gap-y-3 text-sm">
-          <label class="space-y-1">
-            <span class="text-muted">位置</span>
-            <USelect
-              v-model="form.location"
-              :items="withNone(locationItems)"
-              class="w-full sketch-chip"
-            />
-          </label>
+    <div v-if="contact">
+      <!-- 欄位表單 -->
+      <div class="detail-form">
+        <label>
+          <span>位置</span>
+          <RSelect
+            v-model="form.location"
+            :options="withNone(locationItems)"
+          />
+        </label>
 
-          <label class="space-y-1">
-            <span class="text-muted">聯絡方式</span>
-            <UInput
-              v-model="form.contact"
-              class="w-full sketch-chip"
-            />
-          </label>
+        <label>
+          <span>聯絡方式</span>
+          <RInput v-model="form.contact" />
+        </label>
 
-          <label class="space-y-1">
-            <span class="text-muted">誰的朋友</span>
-            <USelect
-              v-model="form.friendOf"
-              :items="withNone(optionItems)"
-              class="w-full sketch-chip"
-            />
-          </label>
+        <label>
+          <span>誰的朋友</span>
+          <RSelect
+            v-model="form.friendOf"
+            :options="withNone(optionItems)"
+          />
+        </label>
 
-          <label class="space-y-1">
-            <span class="text-muted">開發夥伴</span>
-            <USelect
-              v-model="form.devPartner"
-              :items="withNone(optionItems)"
-              class="w-full sketch-chip"
-            />
-          </label>
+        <label>
+          <span>開發夥伴</span>
+          <RSelect
+            v-model="form.devPartner"
+            :options="withNone(optionItems)"
+          />
+        </label>
 
-          <label class="space-y-1">
-            <span class="text-muted">等級</span>
-            <USelect
-              v-model="form.level"
-              :items="withNone(levelItems)"
-              class="w-full sketch-chip"
-            />
-          </label>
+        <label>
+          <span>等級</span>
+          <RSelect
+            v-model="form.level"
+            :options="withNone(levelItems)"
+          />
+        </label>
 
-          <label class="space-y-1">
-            <span class="text-muted">狀態（織網表）</span>
-            <UInput
-              v-model="form.status"
-              class="w-full sketch-chip"
-            />
-          </label>
+        <label>
+          <span>狀態（織網表）</span>
+          <RInput v-model="form.status" />
+        </label>
 
-          <label class="space-y-1">
-            <span class="text-muted">跟進頻率</span>
-            <USelect
-              v-model="form.followUpFreq"
-              :items="withNone(freqItems)"
-              class="w-full sketch-chip"
-            />
-          </label>
+        <label>
+          <span>跟進頻率</span>
+          <RSelect
+            v-model="form.followUpFreq"
+            :options="withNone(freqItems)"
+          />
+        </label>
 
-          <label class="space-y-1">
-            <span class="text-muted">最後跟進日</span>
-            <UInput
-              v-model="form.lastFollowUp"
-              type="date"
-              class="w-full sketch-chip"
-            />
-          </label>
+        <label>
+          <span>最後跟進日</span>
+          <RInput
+            v-model="form.lastFollowUp"
+            type="date"
+          />
+        </label>
 
-          <label class="space-y-1 col-span-2">
-            <span class="text-muted">新人資訊</span>
-            <UTextarea
-              v-model="form.info"
-              :rows="2"
-              class="w-full"
-            />
-          </label>
+        <label class="span-2">
+          <span>新人資訊</span>
+          <textarea
+            v-model="form.info"
+            rows="2"
+          />
+        </label>
 
-          <label class="space-y-1 col-span-2">
-            <span class="text-muted">備註</span>
-            <UTextarea
-              v-model="form.note"
-              :rows="2"
-              class="w-full"
-            />
-          </label>
-        </div>
-
-        <div class="text-center">
-          <UButton
-            variant="outline"
-            color="primary"
-            class="sketch-chip px-6"
-            :loading="saving"
-            @click="save"
-          >
-            💾 儲存
-          </UButton>
-        </div>
-
-        <!-- 跟進紀錄時間軸 -->
-        <div class="pt-2">
-          <h3 class="font-bold text-base mb-3">
-            🕰️ 跟進紀錄
-          </h3>
-
-          <!-- 新增紀錄 -->
-          <form
-            class="flex flex-wrap items-end gap-2 mb-4"
-            @submit.prevent="addLog"
-          >
-            <UInput
-              v-model="logDate"
-              type="date"
-              size="sm"
-              class="sketch-chip"
-            />
-            <UInput
-              v-model="logContent"
-              size="sm"
-              placeholder="跟進內容…"
-              class="grow min-w-40"
-            />
-            <UButton
-              type="submit"
-              size="sm"
-              color="primary"
-              class="sketch-chip"
-            >
-              加一筆
-            </UButton>
-          </form>
-
-          <ol class="space-y-2">
-            <li
-              v-for="log in logs"
-              :key="log.id"
-              class="flex items-start gap-3"
-            >
-              <UBadge
-                variant="outline"
-                color="neutral"
-                class="sketch-chip shrink-0"
-              >
-                {{ log.date }}
-              </UBadge>
-              <div class="grow min-w-0">
-                <p class="text-muted text-xs leading-none mb-0.5">
-                  {{ timeAgo(log.date) }}
-                </p>
-                <p class="whitespace-pre-wrap">
-                  {{ log.content || '—' }}
-                </p>
-              </div>
-              <UButton
-                icon="i-lucide-eraser"
-                size="xs"
-                variant="ghost"
-                color="error"
-                title="刪除紀錄"
-                @click="removeLog(log)"
-              />
-            </li>
-            <li
-              v-if="!logs?.length"
-              class="text-muted text-sm"
-            >
-              還沒有任何跟進紀錄。打完一通電話，記得來這裡記一筆 ✏️
-            </li>
-          </ol>
-        </div>
+        <label class="span-2">
+          <span>備註</span>
+          <textarea
+            v-model="form.note"
+            rows="2"
+          />
+        </label>
       </div>
-    </template>
-  </UModal>
+
+      <div class="detail-actions">
+        <RButton
+          variant="primary"
+          :disabled="saving"
+          @click="save"
+        >
+          {{ saving ? '儲存中…' : '儲存' }}
+        </RButton>
+      </div>
+
+      <!-- 跟進紀錄時間軸 -->
+      <div>
+        <h3 class="logs-head">
+          🕰️ 跟進紀錄
+        </h3>
+
+        <!-- 新增紀錄 -->
+        <form
+          class="log-form"
+          @submit.prevent="addLog"
+        >
+          <RInput
+            v-model="logDate"
+            type="date"
+          />
+          <div class="log-form__content">
+            <RInput
+              v-model="logContent"
+              placeholder="跟進內容…"
+            />
+          </div>
+          <RButton
+            variant="primary"
+            type="submit"
+          >
+            加一筆
+          </RButton>
+        </form>
+
+        <ol class="log-list">
+          <li
+            v-for="log in logs"
+            :key="log.id"
+            class="log-item"
+          >
+            <RBadge tone="gray">
+              {{ log.date }}
+            </RBadge>
+            <div class="log-item__body">
+              <p class="log-ago">
+                {{ timeAgo(log.date) }}
+              </p>
+              <p class="log-content">
+                {{ log.content || '—' }}
+              </p>
+            </div>
+            <button
+              type="button"
+              class="row-step row-step--danger"
+              title="刪除紀錄"
+              @click="removeLog(log)"
+            >
+              ×
+            </button>
+          </li>
+          <li
+            v-if="!logs?.length"
+            class="muted-note"
+          >
+            還沒有任何跟進紀錄。打完一通電話，記得來這裡記一筆 ✏️
+          </li>
+        </ol>
+      </div>
+    </div>
+  </RDialog>
 </template>

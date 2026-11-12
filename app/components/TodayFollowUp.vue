@@ -1,4 +1,8 @@
 <script setup lang="ts">
+import RBadge from '../components/rough/RBadge.vue'
+import RButton from '../components/rough/RButton.vue'
+import RCard from '../components/rough/RCard.vue'
+import RoughFrame from '../components/rough/RoughFrame.vue'
 import {
   api,
   todayStr,
@@ -15,7 +19,7 @@ const props = defineProps<{ refresh?: () => void, tick?: number }>()
 
 const emit = defineEmits<{ detail: [contact: Contact] }>()
 
-const toast = useToast()
+const { flash } = useNotice()
 
 const { data: contacts, refresh: refreshContacts } = useFetch<Contact[]>('/api/contacts', { default: () => [] })
 
@@ -38,19 +42,19 @@ async function markDone(entry: { contact: Contact }) {
       method: 'POST',
       body: { date: todayStr(), content: null }
     })
-    toast.add({ title: `記好了 ✏️「${c.name}」今天跟進完成`, color: 'neutral' })
+    flash(`記好了 ✏️「${c.name}」今天跟進完成`)
     refreshContacts()
     props.refresh?.()
   } catch (err: unknown) {
-    toast.add({ title: '記錄跟進失敗', description: (err as Error)?.message, color: 'error' })
+    flash(`記錄跟進失敗：${(err as Error)?.message}`, { error: true })
   }
 }
 
-function reasonChipClass(reason: LeadReason): string {
-  if (!reason) return 'sketch-chip'
-  if (reason.kind === 'overdue') return 'sketch-chip marker-red px-1.5'
-  if (reason.kind === 'due') return 'sketch-chip marker px-1.5'
-  return 'sketch-chip px-1.5'
+function reasonTone(reason: LeadReason): 'red' | 'yellow' | 'gray' {
+  if (!reason) return 'gray'
+  if (reason.kind === 'overdue') return 'red'
+  if (reason.kind === 'due') return 'yellow'
+  return 'gray'
 }
 
 const showAll = ref(false)
@@ -61,66 +65,71 @@ const visible = computed(() =>
 </script>
 
 <template>
-  <div class="grid gap-2">
-    <template v-if="followUps.length">
-      <div
-        v-for="(item, idx) in visible"
-        :key="item.contact.id"
-        class="sketch-card-alt flex items-center justify-between gap-2 px-3 py-2"
-      >
-        <div class="flex flex-wrap items-center gap-2">
-          <span class="sketch-chip shrink-0 inline-flex items-center justify-center px-1.5 min-w-10 font-bold">
+  <div
+    v-if="followUps.length"
+    class="follow-list"
+  >
+    <RoughFrame
+      v-for="(item, idx) in visible"
+      :key="item.contact.id"
+    >
+      <div class="follow-row__content">
+        <div class="follow-row__meta">
+          <RBadge tone="yellow">
             {{ idx === 0 ? '🥇' : idx === 1 ? '🥈' : idx === 2 ? '🥉' : item.score }}
-          </span>
+          </RBadge>
 
           <button
-            class="font-bold text-base hover:underline decoration-wavy"
+            type="button"
+            class="cell-edit"
             @click="emit('detail', item.contact)"
           >
             {{ item.contact.name }}
           </button>
 
-          <span
-            class="text-xs"
-            :class="reasonChipClass(item.reason)"
-          >{{ item.reason?.label }}</span>
-          <span
+          <RBadge
+            v-if="item.reason"
+            :tone="reasonTone(item.reason)"
+          >
+            {{ item.reason.label }}
+          </RBadge>
+          <RBadge
             v-if="item.contact.broached"
-            class="sketch-chip px-1.5 text-xs text-muted"
-          >破題</span>
+            tone="gray"
+          >
+            破題
+          </RBadge>
           <span
             v-if="item.contact.followUpFreq && item.contact.followUpFreq !== '暫停'"
-            class="text-xs text-muted"
+            class="muted-note"
           >
             {{ item.contact.followUpFreq }}
           </span>
-          <span class="text-xs text-muted">最後 {{ timeAgo(item.contact.lastFollowUp) }}</span>
+          <span class="muted-note">最後 {{ timeAgo(item.contact.lastFollowUp) }}</span>
         </div>
 
-        <UButton
-          size="sm"
-          color="primary"
-          class="sketch-chip shrink-0"
+        <RButton
+          variant="primary"
           @click="markDone(item)"
         >
-          ✅ 跟進完成
-        </UButton>
+          跟進完成
+        </RButton>
       </div>
+    </RoughFrame>
 
-      <button
-        v-if="followUps.length > STEP"
-        class="text-sm underline decoration-wavy text-muted w-fit mx-auto"
-        @click="showAll = !showAll"
-      >
-        {{ showAll ? '收摺 ▲' : `還有 ${followUps.length - STEP} 位… ▼` }}
-      </button>
-    </template>
-
-    <div
-      v-else
-      class="sketch-card p-8 text-center text-muted"
+    <button
+      v-if="followUps.length > STEP"
+      type="button"
+      class="show-more-button"
+      @click="showAll = !showAll"
     >
+      {{ showAll ? '收摺 ▲' : `還有 ${followUps.length - STEP} 位… ▼` }}
+    </button>
+  </div>
+
+  <RCard v-else>
+    <div class="empty-state">
       今天沒有該跟進的名單。心情輕鬆 ☀️
     </div>
-  </div>
+  </RCard>
 </template>

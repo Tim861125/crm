@@ -5,9 +5,9 @@
 ## 技術
 
 - **Bun**：runtime + package manager（`bun --bun nuxt dev`）
-- **Nuxt 4 + Nuxt UI**：表格 / Modal / Select 等打底，主題層蓋出手繪感
+- **Nuxt 4**：無 UI 函式庫，UI 全部自己來（比照 lunch-order 的手繪元件套件）
 - **Drizzle ORM + SQLite**（`bun:sqlite`，檔案在 `data/crm.db`，可用 `NUXT_DB_PATH` 覆寫）
-- **手繪風**：Patrick Hand + LXGW WenKai TC 字體、不規則邊框、紙感點陣底、螢光筆標記（`app/assets/css/main.css`）
+- **手繪風**：NaikaiFont 字體、rough.js 手繪邊框（`app/components/rough/`）、紙感底色、螢光筆標記（`app/assets/css/main.css`）
 
 ## 功能
 

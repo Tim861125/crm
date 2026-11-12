@@ -2,7 +2,6 @@
 export default defineNuxtConfig({
   modules: [
     '@nuxt/eslint',
-    '@nuxt/ui',
     '@nuxt/test-utils/module' // 提供 vitest 的 nuxt environment 與 mountSuspended
   ],
 
@@ -10,13 +9,12 @@ export default defineNuxtConfig({
     enabled: true
   },
 
-  css: ['~/assets/css/main.css'],
-
-  // 深淺色：預設 light（不跟隨系統），header 有 UColorModeButton 讓使用者切換
-  colorMode: {
-    preference: 'light',
-    fallback: 'light'
+  app: {
+    pageTransition: { name: 'page', mode: 'out-in' },
+    layoutTransition: { name: 'layout', mode: 'out-in' }
   },
+
+  css: ['~/assets/css/main.css'],
 
   devServer: {
     port: 1138

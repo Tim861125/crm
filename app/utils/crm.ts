@@ -90,13 +90,6 @@ export const PROSPECT_SECTION_META: Record<ProspectSection, { title: string, ico
 
 export const PROSPECT_SECTIONS: ProspectSection[] = ['develop', 'reserve', 'five', 'network']
 
-// 等級徽章顏色
-export function levelColor(level: string | null | undefined): 'error' | 'warning' | 'neutral' {
-  if (level === 'SSR') return 'error'
-  if (level === 'SR') return 'warning'
-  return 'neutral'
-}
-
 // 動態 path 的 $fetch 會踩到 Nuxt 的型別配對（Excessive stack depth），
 // 統一走這個不帶路由型別的薄包裝；後端寫入端點回傳「單一物件」（list GET 回陣列）
 export async function api<T = object>(url: string, opts?: Record<string, unknown>): Promise<T> {

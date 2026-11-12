@@ -1,4 +1,10 @@
 <script setup lang="ts">
+import RBadge from '../components/rough/RBadge.vue'
+import RButton from '../components/rough/RButton.vue'
+import RInput from '../components/rough/RInput.vue'
+import RSelect from '../components/rough/RSelect.vue'
+import ContactDetailModal from './ContactDetailModal.vue'
+import ContactOptionsModal from './ContactOptionsModal.vue'
 import {
   api,
   applyContactFilters,
@@ -13,7 +19,7 @@ import {
   type StepFilter
 } from '../utils/crm'
 
-const toast = useToast()
+const { flash } = useNotice()
 
 // ── 資料 ─────────────────────────────────────────────────────
 const { data: contacts, refresh: refreshContacts } = useFetch('/api/contacts', { default: () => [] })
@@ -127,7 +133,7 @@ async function patchContact(c: Contact, patch: Partial<Contact> & Record<string,
     replaceContact(idx, updated)
   } catch (err: unknown) {
     replaceContact(idx, backup) // 回滾
-    toast.add({ title: `儲存「${c.name}」失敗`, description: (err as Error)?.message, color: 'error' })
+    flash(`儲存「${c.name}」失敗：${(err as Error)?.message}`, { error: true })
   }
 }
 
@@ -166,7 +172,7 @@ async function addContact() {
     await refreshContacts()
     startEdit(created, 'name') // 建立後直接進入姓名編輯
   } catch (err: unknown) {
-    toast.add({ title: '新增名單失敗', description: (err as Error)?.message, color: 'error' })
+    flash(`新增名單失敗：${(err as Error)?.message}`, { error: true })
   }
 }
 
@@ -174,10 +180,10 @@ async function removeContact(c: Contact) {
   if (!window.confirm(`確定要刪除「${c.name}」嗎？跟進紀錄也會一起刪除。`)) return
   try {
     await api(`/api/contacts/${c.id}`, { method: 'DELETE' })
-    toast.add({ title: `已刪除「${c.name}」`, color: 'neutral' })
+    flash(`已刪除「${c.name}」`)
     await refreshContacts()
   } catch (err: unknown) {
-    toast.add({ title: `刪除「${c.name}」失敗`, description: (err as Error)?.message, color: 'error' })
+    flash(`刪除「${c.name}」失敗：${(err as Error)?.message}`, { error: true })
   }
 }
 
@@ -191,140 +197,111 @@ function onEditKeydown(e: KeyboardEvent) {
 <template>
   <div>
     <!-- 標題列 -->
-    <div class="flex flex-wrap items-end justify-between gap-3 mb-4">
-      <h1 class="text-2xl sm:text-3xl font-bold sketch-oval">
-        總名單
-      </h1>
-
-      <p class="text-sm text-muted">
+    <div class="page-heading">
+      <h1>總名單</h1>
+      <p>
         共 {{ stats.total }} 筆<span v-if="stats.overdue"> · <span class="marker-red">逾期 {{ stats.overdue }} 位</span></span>
       </p>
     </div>
 
     <!-- 工具列 -->
-    <div class="flex flex-wrap items-center gap-2 mb-3">
-      <UInput
-        v-model="search"
-        icon="i-lucide-search"
-        placeholder="搜尋姓名／聯絡方式…"
-        class="min-w-56"
-      />
-      <UButton
-        icon="i-lucide-plus"
-        class="sketch-chip"
-        color="primary"
-        variant="outline"
+    <div class="list-toolbar">
+      <div class="list-search">
+        <RInput
+          v-model="search"
+          placeholder="搜尋姓名／聯絡方式…"
+        />
+      </div>
+      <RButton
+        variant="primary"
         @click="addContact"
       >
         新增名單
-      </UButton>
-      <UButton
-        icon="i-lucide-pencil"
-        color="neutral"
-        variant="ghost"
-        class="sketch-chip"
-        @click="optionsOpen = true"
-      >
+      </RButton>
+      <RButton @click="optionsOpen = true">
         管理階段／選項
-      </UButton>
+      </RButton>
     </div>
 
     <!-- 篩選摘要 -->
     <div
       v-if="hasActiveFilter"
-      class="flex items-center gap-2 mb-3 text-sm"
+      class="filter-summary"
     >
-      <UBadge
-        variant="outline"
-        color="primary"
-        class="sketch-chip"
-      >
+      <RBadge tone="yellow">
         {{ filtered.length }} / {{ stats.total }} 筆
-      </UBadge>
-      <UButton
-        color="neutral"
-        variant="ghost"
-        size="xs"
-        icon="i-lucide-eraser"
-        class="sketch-chip"
+      </RBadge>
+      <button
+        type="button"
+        class="link-button"
         @click="clearAllFilters"
       >
         清除所有篩選
-      </UButton>
+      </button>
     </div>
 
     <!-- 名單表格（手機可橫滑） -->
-    <div class="sketch-card p-2 sm:p-4 overflow-x-auto">
-      <table class="sketch-table w-full min-w-[760px] text-sm">
+    <div class="list-scroll">
+      <table class="r-table">
         <thead>
-          <tr class="text-left text-muted">
-            <th class="py-2 px-2 font-bold">
-              姓名
-            </th>
-            <th class="py-2 px-2 font-bold">
+          <tr>
+            <th>姓名</th>
+            <th>
               <button
                 type="button"
-                class="cursor-pointer"
-                :class="stepFilterValueLabel ? 'marker bg-transparent -rotate-0.5' : ''"
+                class="th-filter"
+                :class="{ 'is-active': !!stepFilterValueLabel }"
                 title="點擊循環：全部 → 各階段"
                 @click="cycleStepFilter"
               >
                 {{ stepFilterValueLabel || '進度' }}
               </button>
             </th>
-            <th class="py-2 px-2 font-bold">
-              <USelect
-                v-model="locationFilter"
-                :items="locationFilterItems"
-                size="xs"
-                variant="ghost"
-                class="w-24"
-                :ui="{ base: 'text-sm font-bold text-muted' }"
-              />
+            <th>
+              <div class="th-select">
+                <RSelect
+                  v-model="locationFilter"
+                  :options="locationFilterItems"
+                />
+              </div>
             </th>
-            <th class="py-2 px-2 font-bold">
-              聯絡
-            </th>
-            <th class="py-2 px-2 font-bold">
+            <th>聯絡</th>
+            <th>
               <button
                 type="button"
-                class="cursor-pointer"
-                :class="freqFilter !== 'all' ? 'marker bg-transparent -rotate-0.5' : ''"
+                class="th-filter"
+                :class="{ 'is-active': freqFilter !== 'all' }"
                 title="點擊循環頻率篩選"
                 @click="cycleFreqFilter"
               >
                 {{ freqFilter === 'all' ? '跟進' : FOLLOW_UP_FREQ_SHORT[freqFilter] || freqFilter }}
               </button>
             </th>
-            <th class="py-2 px-2 font-bold">
-              <div class="flex items-center gap-1.5">
-                <button
-                  type="button"
-                  class="cursor-pointer inline-flex items-center gap-0.5"
-                  :class="sortByNext ? 'marker bg-transparent -rotate-0.5' : ''"
-                  title="依下次跟進日排序"
-                  @click="sortByNext = !sortByNext"
-                >
-                  下次跟進
-                  <UIcon
-                    name="i-lucide-arrow-down-narrow-wide"
-                    class="size-3"
-                    :class="sortByNext ? '' : 'opacity-40'"
-                  />
-                </button>
-                <button
-                  v-if="stats.overdue > 0"
-                  type="button"
-                  class="cursor-pointer sketch-chip px-1.5 text-xs"
-                  :class="overdueOnly ? 'marker-red bg-transparent' : 'text-muted'"
-                  title="只看逾期"
-                  @click="overdueOnly = !overdueOnly"
-                >
-                  遲 {{ stats.overdue }}
-                </button>
-              </div>
+            <th>
+              <button
+                type="button"
+                class="th-filter"
+                :class="{ 'is-active': sortByNext }"
+                title="依下次跟進日排序"
+                @click="sortByNext = !sortByNext"
+              >
+                下次跟進 <span
+                  class="sort-arrow"
+                  :class="{ 'is-off': !sortByNext }"
+                >↓</span>
+              </button>
+              <button
+                v-if="stats.overdue > 0"
+                type="button"
+                class="overdue-toggle"
+                :class="{ 'is-active': overdueOnly }"
+                title="只看逾期"
+                @click="overdueOnly = !overdueOnly"
+              >
+                遲 {{ stats.overdue }}
+              </button>
             </th>
-            <th class="py-2 px-2 font-bold w-24" />
+            <th style="width: 150px" />
           </tr>
         </thead>
         <tbody>
@@ -334,147 +311,143 @@ function onEditKeydown(e: KeyboardEvent) {
             :data-id="c.id"
           >
             <!-- 姓名 -->
-            <td class="py-2.5 px-2 font-bold text-base align-top">
+            <td>
               <template v-if="editingKey === `name-${c.id}`">
                 <input
                   v-model="editingValue"
-                  class="w-28 border-2 border-current rounded-md bg-transparent outline-none sketch-chip"
+                  class="cell-input"
                   @blur="commitEdit(c, 'name')"
                   @keydown="onEditKeydown"
                 >
               </template>
               <template v-else>
-                <span
-                  class="cursor-text hover:underline decoration-wavy"
+                <button
+                  type="button"
+                  class="cell-edit"
                   @click="startEdit(c, 'name')"
                 >
                   {{ c.name }}
-                </span>
+                </button>
+                <RBadge
+                  v-if="c.level"
+                  tone="gray"
+                >
+                  {{ c.level }}
+                </RBadge>
               </template>
-              <span
-                v-if="c.level"
-                class="sketch-chip ml-1.5 px-1.5 py-0.5 text-xs text-muted"
-              >
-                {{ c.level }}
-              </span>
             </td>
 
             <!-- 進度階段 -->
-            <td class="py-2.5 px-2 align-top">
-              <div class="flex flex-wrap gap-1.5 max-w-64">
-                <span
+            <td>
+              <template v-if="stages?.length">
+                <button
                   v-for="s in stages"
                   :key="s.id"
-                  class="sketch-chip px-2 py-0.5 cursor-pointer select-none"
-                  :class="c.completedStages.includes(s.id) ? 'marker bg-transparent' : 'opacity-45 text-muted'"
+                  type="button"
+                  class="stage-chip"
+                  :class="{ 'is-done': c.completedStages.includes(s.id) }"
                   :title="`切換階段「${s.label}」`"
                   @click="toggleStage(c, s.id)"
                 >
                   {{ s.label }}
-                </span>
-                <span
-                  v-if="!stages?.length"
-                  class="text-muted text-xs"
-                >先在「管理階段／選項」建立階段</span>
-              </div>
+                </button>
+              </template>
+              <span
+                v-else
+                class="muted-note"
+              >先在「管理階段／選項」建立階段</span>
             </td>
 
             <!-- 位置 -->
-            <td class="py-2.5 px-2 align-top text-muted min-w-14">
+            <td>
               <template v-if="editingKey === `location-${c.id}`">
                 <input
                   v-model="editingValue"
-                  class="w-20 border-2 border-current rounded-md bg-transparent outline-none sketch-chip"
+                  class="cell-input"
                   list="location-options"
                   @blur="commitEdit(c, 'location')"
                   @keydown="onEditKeydown"
                 >
               </template>
               <template v-else>
-                <span
-                  class="cursor-text hover:underline decoration-dotted"
+                <button
+                  type="button"
+                  class="cell-edit cell-edit--plain"
                   @click="startEdit(c, 'location')"
                 >
                   {{ c.location ?? '－' }}
-                </span>
+                </button>
               </template>
             </td>
 
             <!-- 聯絡方式 -->
-            <td class="py-2.5 px-2 align-top text-muted min-w-32">
+            <td>
               <template v-if="editingKey === `contact-${c.id}`">
                 <input
                   v-model="editingValue"
-                  class="w-32 border-2 border-current rounded-md bg-transparent outline-none sketch-chip"
+                  class="cell-input cell-input--wide"
                   @blur="commitEdit(c, 'contact')"
                   @keydown="onEditKeydown"
                 >
               </template>
               <template v-else>
-                <span
-                  class="cursor-text hover:underline decoration-dotted"
+                <button
+                  type="button"
+                  class="cell-edit cell-edit--plain"
                   @click="startEdit(c, 'contact')"
                 >
                   {{ c.contact ?? '－' }}
-                </span>
+                </button>
               </template>
             </td>
 
             <!-- 跟進頻率 -->
-            <td class="py-2.5 px-2 align-top text-muted">
+            <td>
               {{ c.followUpFreq ? FOLLOW_UP_FREQ_SHORT[c.followUpFreq] : '—' }}
             </td>
 
             <!-- 下次跟進 -->
-            <td class="py-2.5 px-2 align-top whitespace-nowrap">
+            <td style="white-space: nowrap">
               <template v-if="c.nextFollowUp">
-                <span :class="isOverdue(c.nextFollowUp) ? 'marker-red text-sm text-inherit px-0.5' : ''">
+                <span
+                  v-if="isOverdue(c.nextFollowUp)"
+                  class="marker-red"
+                >
                   {{ c.nextFollowUp }}
                 </span>
-                <UBadge
+                <span v-else>{{ c.nextFollowUp }}</span>
+                <RBadge
                   v-if="isOverdue(c.nextFollowUp)"
-                  color="error"
-                  variant="outline"
-                  class="sketch-chip ml-1"
+                  tone="red"
                 >
                   遲 {{ overdueDays(c.nextFollowUp) }}天
-                </UBadge>
+                </RBadge>
                 <span
-                  v-else
-                  class="text-muted text-xs ml-1"
-                >{{ timeAgo(c.nextFollowUp) === '今天' ? '今天' : '' }}</span>
+                  v-else-if="timeAgo(c.nextFollowUp) === '今天'"
+                  class="muted-note"
+                >今天</span>
               </template>
-              <span
-                v-else
-                class="text-muted"
-              >—</span>
+              <span v-else>—</span>
             </td>
 
             <!-- 動作 -->
-            <td class="py-2.5 px-2 align-top whitespace-nowrap">
-              <UButton
-                icon="i-lucide-file-text"
-                size="xs"
-                variant="ghost"
-                color="primary"
-                title="明細"
-                @click="detailContact = c"
-              />
-              <UButton
-                icon="i-lucide-trash-2"
-                size="xs"
-                variant="ghost"
-                color="error"
-                title="刪除"
+            <td style="white-space: nowrap">
+              <RButton @click="detailContact = c">
+                明細
+              </RButton>
+              <RButton
+                variant="danger"
                 @click="removeContact(c)"
-              />
+              >
+                刪除
+              </RButton>
             </td>
           </tr>
 
           <tr v-if="!filtered.length">
             <td
               colspan="7"
-              class="py-10 text-center text-muted"
+              class="empty-cell"
             >
               <template v-if="search">
                 找不到符合「{{ search }}」的名單

@@ -1,9 +1,14 @@
 <script setup lang="ts">
+import RBadge from '../components/rough/RBadge.vue'
+import RButton from '../components/rough/RButton.vue'
+import RDialog from '../components/rough/RDialog.vue'
+import RInput from '../components/rough/RInput.vue'
+import RTabs from '../components/rough/RTabs.vue'
 import { api } from '../utils/crm'
 // 選項管理：進度階段（新增／改名／排序／刪除）＋ 人名選項 ＋ 地點選項
 const open = defineModel<boolean>('open', { default: false })
 
-const toast = useToast()
+const { flash } = useNotice()
 
 // 相同 URL 的 useFetch 會與清單頁共用快取，這裡 refresh 也會同步名單頁的資料
 const { data: stages, refresh: refreshStages } = useFetch('/api/contact-stages', { default: () => [] })
@@ -20,10 +25,10 @@ watch(open, (v) => {
 
 const section = ref<'stages' | 'options' | 'locations'>('stages')
 
-const tabItems = [
-  { label: '進度階段', icon: 'i-lucide-milestone', value: 'stages' },
-  { label: '人名選項', icon: 'i-lucide-users', value: 'options' },
-  { label: '地點選項', icon: 'i-lucide-map-pin', value: 'locations' }
+const tabs = [
+  { key: 'stages', label: '進度階段' },
+  { key: 'options', label: '人名選項' },
+  { key: 'locations', label: '地點選項' }
 ]
 
 // ── 進度階段 ─────────────────────────────────────────────────
@@ -37,7 +42,7 @@ async function addStage() {
     newStage.value = ''
     await refreshStages()
   } catch (err: unknown) {
-    toast.add({ title: '新增階段失敗', description: (err as Error)?.message, color: 'error' })
+    flash(`新增階段失敗：${(err as Error)?.message}`, { error: true })
   }
 }
 
@@ -47,7 +52,7 @@ async function renameStage(stage: ContactStage, label: string) {
     await api(`/api/contact-stages/${stage.id}`, { method: 'PATCH', body: { label: label.trim() } })
     await refreshStages()
   } catch (err: unknown) {
-    toast.add({ title: '改名失敗', description: (err as Error)?.message, color: 'error' })
+    flash(`改名失敗：${(err as Error)?.message}`, { error: true })
   }
 }
 
@@ -64,7 +69,7 @@ async function moveStage(stage: ContactStage, dir: -1 | 1) {
     ])
     await refreshStages()
   } catch (err: unknown) {
-    toast.add({ title: '排序失敗', description: (err as Error)?.message, color: 'error' })
+    flash(`排序失敗：${(err as Error)?.message}`, { error: true })
   }
 }
 
@@ -74,7 +79,7 @@ async function removeStage(stage: ContactStage) {
     await api(`/api/contact-stages/${stage.id}`, { method: 'DELETE' })
     await refreshStages()
   } catch (err: unknown) {
-    toast.add({ title: '刪除階段失敗', description: (err as Error)?.message, color: 'error' })
+    flash(`刪除階段失敗：${(err as Error)?.message}`, { error: true })
   }
 }
 
@@ -90,7 +95,7 @@ async function addOption() {
     newOption.value = ''
     await refreshOptions()
   } catch (err: unknown) {
-    toast.add({ title: '新增人名失敗', description: (err as Error)?.message, color: 'error' })
+    flash(`新增人名失敗：${(err as Error)?.message}`, { error: true })
   }
 }
 
@@ -99,7 +104,7 @@ async function removeOption(option: ContactOption) {
     await api(`/api/contact-options/${option.id}`, { method: 'DELETE' })
     await refreshOptions()
   } catch (err: unknown) {
-    toast.add({ title: '刪除人名失敗', description: (err as Error)?.message, color: 'error' })
+    flash(`刪除人名失敗：${(err as Error)?.message}`, { error: true })
   }
 }
 
@@ -111,7 +116,7 @@ async function addLocation() {
     newLocation.value = ''
     await refreshLocations()
   } catch (err: unknown) {
-    toast.add({ title: '新增地點失敗', description: (err as Error)?.message, color: 'error' })
+    flash(`新增地點失敗：${(err as Error)?.message}`, { error: true })
   }
 }
 
@@ -120,199 +125,186 @@ async function removeLocation(location: ContactLocation) {
     await api(`/api/contact-locations/${location.id}`, { method: 'DELETE' })
     await refreshLocations()
   } catch (err: unknown) {
-    toast.add({ title: '刪除地點失敗', description: (err as Error)?.message, color: 'error' })
+    flash(`刪除地點失敗：${(err as Error)?.message}`, { error: true })
   }
 }
 </script>
 
 <template>
-  <UModal
-    v-model:open="open"
+  <RDialog
+    :open="open"
     title="管理階段／選項"
-    :ui="{ content: 'max-w-xl' }"
+    @update:open="open = $event"
   >
-    <template #body>
-      <UTabs
-        v-model="section"
-        :items="tabItems"
-        color="primary"
-        variant="link"
-        class="mb-4"
-      />
+    <RTabs
+      v-model="section"
+      :tabs="tabs"
+    />
 
-      <!-- 進度階段 -->
-      <div
-        v-if="section === 'stages'"
-        class="space-y-3"
+    <!-- 進度階段 -->
+    <div
+      v-if="section === 'stages'"
+      class="tab-panel"
+    >
+      <form
+        class="inline-form"
+        @submit.prevent="addStage"
       >
-        <form
-          class="flex gap-2"
-          @submit.prevent="addStage"
-        >
-          <UInput
+        <div class="grow-input">
+          <RInput
             v-model="newStage"
             placeholder="新階段名稱…"
-            class="grow"
             @keydown.enter.prevent="addStage"
           />
-          <UButton
-            type="submit"
-            color="primary"
-            variant="outline"
-            class="sketch-chip"
-          >
-            新增
-          </UButton>
-        </form>
-
-        <ul class="space-y-1.5">
-          <li
-            v-for="(s, i) in stages"
-            :key="s.id"
-            class="flex items-center gap-2"
-          >
-            <UBadge
-              neutral
-              variant="outline"
-              class="sketch-chip w-7 text-center justify-center shrink-0"
-            >
-              {{ i + 1 }}
-            </UBadge>
-            <UInput
-              :model-value="s.label"
-              class="grow"
-              size="sm"
-              @update:model-value="v => renameStage(s, String(v))"
-            />
-            <UButton
-              icon="i-lucide-arrow-up"
-              size="xs"
-              variant="ghost"
-              color="primary"
-              :disabled="i === 0"
-              title="上移"
-              @click="moveStage(s, -1)"
-            />
-            <UButton
-              icon="i-lucide-arrow-down"
-              size="xs"
-              variant="ghost"
-              color="primary"
-              :disabled="i === stages!.length - 1"
-              title="下移"
-              @click="moveStage(s, 1)"
-            />
-            <UButton
-              icon="i-lucide-x"
-              size="xs"
-              variant="ghost"
-              color="error"
-              title="刪除"
-              @click="removeStage(s)"
-            />
-          </li>
-          <li
-            v-if="!stages?.length"
-            class="text-muted text-sm"
-          >
-            還沒有階段，加個「2」「加入」之類的名稱試試 ✏️
-          </li>
-        </ul>
-      </div>
-
-      <!-- 人名選項 -->
-      <div
-        v-else-if="section === 'options'"
-        class="space-y-3"
-      >
-        <form
-          class="flex gap-2"
-          @submit.prevent="addOption"
+        </div>
+        <RButton
+          variant="primary"
+          type="submit"
         >
-          <UInput
+          新增
+        </RButton>
+      </form>
+
+      <ul class="plain-list">
+        <li
+          v-for="(s, i) in stages"
+          :key="s.id"
+          class="stage-row"
+        >
+          <RBadge
+            tone="gray"
+            class="stage-index"
+          >
+            {{ i + 1 }}
+          </RBadge>
+          <RInput
+            :model-value="s.label"
+            @update:model-value="v => renameStage(s, String(v))"
+          />
+          <button
+            type="button"
+            class="row-step"
+            :disabled="i === 0"
+            title="上移"
+            @click="moveStage(s, -1)"
+          >
+            ↑
+          </button>
+          <button
+            type="button"
+            class="row-step"
+            :disabled="i === stages!.length - 1"
+            title="下移"
+            @click="moveStage(s, 1)"
+          >
+            ↓
+          </button>
+          <button
+            type="button"
+            class="row-step row-step--danger"
+            title="刪除"
+            @click="removeStage(s)"
+          >
+            ×
+          </button>
+        </li>
+        <li
+          v-if="!stages?.length"
+          class="muted-note"
+        >
+          還沒有階段，加個「2」「加入」之類的名稱試試 ✏️
+        </li>
+      </ul>
+    </div>
+
+    <!-- 人名選項 -->
+    <div
+      v-else-if="section === 'options'"
+      class="tab-panel"
+    >
+      <form
+        class="inline-form"
+        @submit.prevent="addOption"
+      >
+        <div class="grow-input">
+          <RInput
             v-model="newOption"
             placeholder="新的人名…"
-            class="grow"
             @keydown.enter.prevent="addOption"
           />
-          <UButton
-            type="submit"
-            color="primary"
-            variant="outline"
-            class="sketch-chip"
-          >
-            新增
-          </UButton>
-        </form>
-
-        <div class="flex flex-wrap gap-2">
-          <span
-            v-for="o in options"
-            :key="o.id"
-            class="sketch-chip inline-flex items-center gap-1 px-2 py-1 text-sm"
-          >
-            {{ o.label }}
-            <UButton
-              icon="i-lucide-x"
-              size="xs"
-              variant="ghost"
-              color="error"
-              @click="removeOption(o)"
-            />
-          </span>
-          <span
-            v-if="!options?.length"
-            class="text-muted text-sm"
-          >還沒有人名選項</span>
         </div>
-      </div>
-
-      <!-- 地點選項 -->
-      <div
-        v-else
-        class="space-y-3"
-      >
-        <form
-          class="flex gap-2"
-          @submit.prevent="addLocation"
+        <RButton
+          variant="primary"
+          type="submit"
         >
-          <UInput
+          新增
+        </RButton>
+      </form>
+
+      <div class="option-chips">
+        <span
+          v-for="o in options"
+          :key="o.id"
+          class="option-chip"
+        >
+          {{ o.label }}
+          <button
+            type="button"
+            class="chip-remove"
+            title="刪除"
+            @click="removeOption(o)"
+          >×</button>
+        </span>
+        <span
+          v-if="!options?.length"
+          class="muted-note"
+        >還沒有人名選項</span>
+      </div>
+    </div>
+
+    <!-- 地點選項 -->
+    <div
+      v-else
+      class="tab-panel"
+    >
+      <form
+        class="inline-form"
+        @submit.prevent="addLocation"
+      >
+        <div class="grow-input">
+          <RInput
             v-model="newLocation"
             placeholder="新的地點…"
-            class="grow"
             @keydown.enter.prevent="addLocation"
           />
-          <UButton
-            type="submit"
-            color="primary"
-            variant="outline"
-            class="sketch-chip"
-          >
-            新增
-          </UButton>
-        </form>
-
-        <div class="flex flex-wrap gap-2">
-          <span
-            v-for="l in locations"
-            :key="l.id"
-            class="sketch-chip inline-flex items-center gap-1 px-2 py-1 text-sm"
-          >
-            {{ l.label }}
-            <UButton
-              icon="i-lucide-x"
-              size="xs"
-              variant="ghost"
-              color="error"
-              @click="removeLocation(l)"
-            />
-          </span>
-          <span
-            v-if="!locations?.length"
-            class="text-muted text-sm"
-          >還沒有地點選項</span>
         </div>
+        <RButton
+          variant="primary"
+          type="submit"
+        >
+          新增
+        </RButton>
+      </form>
+
+      <div class="option-chips">
+        <span
+          v-for="l in locations"
+          :key="l.id"
+          class="option-chip"
+        >
+          {{ l.label }}
+          <button
+            type="button"
+            class="chip-remove"
+            title="刪除"
+            @click="removeLocation(l)"
+          >×</button>
+        </span>
+        <span
+          v-if="!locations?.length"
+          class="muted-note"
+        >還沒有地點選項</span>
       </div>
-    </template>
-  </UModal>
+    </div>
+  </RDialog>
 </template>

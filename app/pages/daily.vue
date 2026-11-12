@@ -13,35 +13,35 @@ function refreshAll() {
 </script>
 
 <template>
-  <UContainer class="py-6 sm:py-10 px-3 sm:px-6">
-    <h1 class="text-2xl sm:text-3xl font-bold sketch-oval mb-1">
-      今日跟進
-    </h1>
-    <p class="text-muted text-sm mb-4">
-      總名單裡今天該先找誰，照熱度排好了 ✏️
-    </p>
+  <div class="daily-page">
+    <section>
+      <div class="page-heading">
+        <h1>今日跟進</h1>
+        <p>總名單裡今天該先找誰，照熱度排好了 ✏️</p>
+      </div>
 
-    <TodayFollowUp
-      :tick="tick"
-      @detail="detailContact = $event"
-    />
+      <TodayFollowUp
+        :tick="tick"
+        @detail="detailContact = $event"
+      />
+    </section>
 
-    <h1 class="text-2xl sm:text-3xl font-bold sketch-oval mt-10 mb-1">
-      每日任務四區塊
-    </h1>
-    <p class="text-muted text-sm mb-4">
-      開發／預備／五人／織網，四張手繪名單卡 🌱
-    </p>
+    <section>
+      <div class="page-heading">
+        <h1>每日任務四區塊</h1>
+        <p>開發／預備／五人／織網，四張名單卡 🌱</p>
+      </div>
 
-    <ProspectWorksheet
-      :tick="tick"
-      @detail="detailContact = $event"
-    />
+      <ProspectWorksheet
+        :tick="tick"
+        @detail="detailContact = $event"
+      />
+    </section>
 
     <!-- 明細 modal（v-model:contact：子元件 defineModel('contact') 的命名對應） -->
     <ContactDetailModal
       v-model:contact="detailContact"
       @refresh="refreshAll"
     />
-  </UContainer>
+  </div>
 </template>
