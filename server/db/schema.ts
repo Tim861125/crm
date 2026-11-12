@@ -64,19 +64,6 @@ export const contactStages = sqliteTable('contact_stages', {
   userIdIdx: index('contact_stages_user_id_idx').on(table.userId)
 }))
 
-// 名單明細「誰的朋友／開發夥伴」共用人名選項（可增／刪／改名）
-export const contactOptions = sqliteTable('contact_options', {
-  id: integer('id').primaryKey({ autoIncrement: true }),
-  userId: integer('user_id'),
-  // 人名
-  label: text('label').notNull(),
-  createdAt: integer('created_at')
-    .notNull()
-    .$defaultFn(() => Math.floor(Date.now() / 1000))
-}, table => ({
-  userIdIdx: index('contact_options_user_id_idx').on(table.userId)
-}))
-
 // 名單「地點／位置」選項（可增／刪；預設只有中壢）
 export const contactLocations = sqliteTable('contact_locations', {
   id: integer('id').primaryKey({ autoIncrement: true }),

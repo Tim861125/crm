@@ -61,19 +61,6 @@ export const contactStagePatchSchema = z.object({
 
 export type ContactStagePatch = z.infer<typeof contactStagePatchSchema>
 
-// 名單共用人名選項
-export const contactOptionInputSchema = z.object({
-  label: z.string().trim().min(1, '請輸入名稱')
-})
-
-export type ContactOptionInput = z.infer<typeof contactOptionInputSchema>
-
-export const contactOptionPatchSchema = z.object({
-  label: z.string().trim().min(1, '請輸入名稱')
-})
-
-export type ContactOptionPatch = z.infer<typeof contactOptionPatchSchema>
-
 // 名單地點選項
 export const contactLocationInputSchema = z.object({
   label: z.string().trim().min(1, '請輸入地點名稱')

@@ -120,7 +120,6 @@ const locationFilterItems = computed(() => [
 const detailContact = ref<Contact | null>(null)
 const stagesOpen = ref(false)
 const locationsOpen = ref(false)
-const optionsOpen = ref(false)
 
 // ── patch 工具：樂觀更新 + 失敗回滾 ──────────────────────────
 // 注意：useFetch 預設 shallow，就地改 items（contacts.value[i] = x）不會觸發畫面更新
@@ -245,9 +244,6 @@ function onEditKeydown(e: KeyboardEvent) {
         @click="addContact"
       >
         {{ adding ? '新增中…' : '新增名單' }}
-      </RButton>
-      <RButton @click="optionsOpen = true">
-        管理人名選項
       </RButton>
     </div>
 
@@ -595,7 +591,7 @@ function onEditKeydown(e: KeyboardEvent) {
       @refresh="refreshContacts"
     />
 
-    <!-- 管理 dialog：階段／地點由欄位標題開啟，人名選項由工具列開啟；
+    <!-- 管理 dialog：階段／地點由欄位標題開啟；
          refresh 事件驅動名單頁刷新（見 ContactOptionsModal 檔內說明） -->
     <ContactOptionsModal
       v-model:open="stagesOpen"
@@ -606,10 +602,6 @@ function onEditKeydown(e: KeyboardEvent) {
       v-model:open="locationsOpen"
       mode="locations"
       @refresh="refreshLocations"
-    />
-    <ContactOptionsModal
-      v-model:open="optionsOpen"
-      mode="options"
     />
   </div>
 </template>

@@ -37,8 +37,8 @@ describe('openDatabase（改走 drizzle 內建 migrator）', () => {
     expect(count(
       db,
       `SELECT name FROM sqlite_master WHERE type = 'table'
-       AND name IN ('contacts','contact_stages','contact_options','contact_locations','prospects','follow_up_logs')`
-    )).toBe(6)
+       AND name IN ('contacts','contact_stages','contact_locations','prospects','follow_up_logs')`
+    )).toBe(5)
     expect(count(db, `SELECT 1 FROM ${MIGRATIONS_TABLE}`)).toBe(journal().length)
   })
 

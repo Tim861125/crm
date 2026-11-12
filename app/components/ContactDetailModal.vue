@@ -107,9 +107,8 @@ watch(open, (o) => {
   if (o) {
     refreshLogs()
     // 同 key useFetch 不跨元件同步：開明細時重抓選項清單，
-    // 才看得到剛在「管理人名／地點選項」dialog 新增的項目
+    // 才看得到剛在「管理地點選項」dialog 新增的項目
     refreshLocations()
-    refreshOptions()
   }
 })
 
@@ -146,22 +145,10 @@ async function removeLog(log: FollowUpLog) {
 
 // 選項清單
 const { data: locations, refresh: refreshLocations } = useFetch('/api/contact-locations', { default: () => [] })
-const { data: personOptions, refresh: refreshOptions } = useFetch('/api/contact-options', { default: () => [] })
 
 const locationItems = computed(() =>
   locations.value.map(l => ({ label: l.label, value: l.label }))
 )
-
-// 「誰的朋友／開發夥伴」人名選項（含現值，避免現有自由文字搜不到）
-const optionItems = computed(() => {
-  const set = new Set<string>()
-  for (const o of personOptions.value || []) set.add(o.label)
-  for (const k of ['friendOf', 'devPartner'] as const) {
-    const v = contact.value?.[k]
-    if (v) set.add(v)
-  }
-  return [...set].filter(Boolean).map(label => ({ label, value: label }))
-})
 
 const freqItems = FOLLOW_UP_FREQ_OPTIONS.map(v => ({ label: v, value: v }))
 const levelItems = LEVEL_OPTIONS.map(v => ({ label: v, value: v }))
@@ -193,18 +180,12 @@ const levelItems = LEVEL_OPTIONS.map(v => ({ label: v, value: v }))
 
         <label>
           <span>誰的朋友</span>
-          <RSelect
-            v-model="form.friendOf"
-            :options="withNone(optionItems)"
-          />
+          <RInput v-model="form.friendOf" />
         </label>
 
         <label>
           <span>開發夥伴</span>
-          <RSelect
-            v-model="form.devPartner"
-            :options="withNone(optionItems)"
-          />
+          <RInput v-model="form.devPartner" />
         </label>
 
         <label>

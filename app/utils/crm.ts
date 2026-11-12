@@ -25,14 +25,6 @@ export interface Contact {
   updatedAt: number
 }
 
-// 名單明細「誰的朋友／開發夥伴」共用人名選項（對應後端 contact_options 表）
-export interface ContactOption {
-  id: number
-  userId: number | null
-  label: string
-  createdAt: number
-}
-
 // 名單地點選項（對應後端 contact_locations 表）
 export interface ContactLocation {
   id: number

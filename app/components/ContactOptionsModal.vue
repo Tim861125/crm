@@ -5,13 +5,12 @@ import RDialog from '../components/rough/RDialog.vue'
 import RInput from '../components/rough/RInput.vue'
 import { api } from '../utils/crm'
 // 選項管理 dialog（單頁模式）：mode 決定內容 —
-// stages＝進度階段（新增／改名／排序／刪除）；options＝人名選項；locations＝地點選項
+// stages＝進度階段（新增／改名／排序／刪除）；locations＝地點選項
 const open = defineModel<boolean>('open', { default: false })
-const props = defineProps<{ mode: 'stages' | 'options' | 'locations' }>()
+const props = defineProps<{ mode: 'stages' | 'locations' }>()
 
 const titles = {
   stages: '管理進度階段',
-  options: '管理人名選項',
   locations: '管理地點選項'
 } as const
 const title = computed(() => titles[props.mode])
@@ -29,13 +28,11 @@ async function afterMutation(refresh: () => Promise<unknown>) {
   emit('refresh')
 }
 const { data: stages, refresh: refreshStages } = useFetch('/api/contact-stages', { default: () => [] })
-const { data: options, refresh: refreshOptions } = useFetch('/api/contact-options', { default: () => [] })
 const { data: locations, refresh: refreshLocations } = useFetch('/api/contact-locations', { default: () => [] })
 
 watch(open, (v) => {
   if (!v) return
   if (props.mode === 'stages') refreshStages()
-  else if (props.mode === 'options') refreshOptions()
   else refreshLocations()
 })
 
@@ -99,30 +96,8 @@ async function removeStage(stage: ContactStage) {
   }
 }
 
-// ── 人名選項 / 地點選項 ──────────────────────────────────────
-const newOption = ref('')
+// ── 地點選項 ─────────────────────────────────────────────────
 const newLocation = ref('')
-
-async function addOption() {
-  const label = newOption.value.trim()
-  if (!label) return
-  try {
-    await api('/api/contact-options', { method: 'POST', body: { label } })
-    newOption.value = ''
-    await afterMutation(refreshOptions)
-  } catch (err: unknown) {
-    flash(`新增人名失敗：${(err as Error)?.message}`, { error: true })
-  }
-}
-
-async function removeOption(option: ContactOption) {
-  try {
-    await api(`/api/contact-options/${option.id}`, { method: 'DELETE' })
-    await afterMutation(refreshOptions)
-  } catch (err: unknown) {
-    flash(`刪除人名失敗：${(err as Error)?.message}`, { error: true })
-  }
-}
 
 async function addLocation() {
   const label = newLocation.value.trim()
@@ -238,59 +213,9 @@ async function removeLocation(location: ContactLocation) {
       </ul>
     </div>
 
-    <!-- 人名選項 -->
-    <div
-      v-else-if="props.mode === 'options'"
-      class="tab-panel"
-      role="group"
-      :aria-label="title"
-      tabindex="0"
-    >
-      <form
-        class="inline-form"
-        @submit.prevent="addOption"
-      >
-        <div class="grow-input">
-          <RInput
-            v-model="newOption"
-            aria-label="新的人名"
-            placeholder="新的人名…"
-            @keydown.enter.prevent="addOption"
-          />
-        </div>
-        <RButton
-          variant="primary"
-          type="submit"
-        >
-          新增
-        </RButton>
-      </form>
-
-      <div class="option-chips">
-        <span
-          v-for="o in options"
-          :key="o.id"
-          class="option-chip"
-        >
-          {{ o.label }}
-          <button
-            type="button"
-            class="chip-remove"
-            title="刪除"
-            :aria-label="`刪除人名「${o.label}」`"
-            @click="removeOption(o)"
-          >×</button>
-        </span>
-        <span
-          v-if="!options?.length"
-          class="muted-note"
-        >還沒有人名選項</span>
-      </div>
-    </div>
-
     <!-- 地點選項 -->
     <div
-      v-else
+      v-if="props.mode === 'locations'"
       class="tab-panel"
       role="group"
       :aria-label="title"

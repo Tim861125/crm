@@ -57,9 +57,6 @@ Content-Type: application/json
   "label": "加入"
 }
 
-### 人名選項
-GET {{base}}/contact-options
-
 ### 地點選項
 GET {{base}}/contact-locations
 

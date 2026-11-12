@@ -1,9 +1,8 @@
-// 驗證三個管理 dialog 入口與進度篩選鈕：
+// 驗證兩個管理 dialog 入口與進度篩選鈕：
 //   1. 進度欄標題鈕 →「管理進度階段」dialog（Esc 可關）
 //   2. 地點欄標題鈕 →「管理地點選項」dialog（Esc 可關）
-//   3. 工具列「管理人名選項」鈕 →「管理人名選項」dialog（Esc 可關）
-//   4. 「循環進度篩選」鈕：有階段時 aria-label 循環生效；無階段時可點、不崩潰
-//   5. 全程無 pageerror
+//   3. 「循環進度篩選」鈕：有階段時 aria-label 循環生效；無階段時可點、不崩潰
+//   4. 全程無 pageerror
 // 用法：先起 dev server（localhost:1138），再 bun tests/manual/option-dialogs-verify.mjs
 import puppeteer from 'puppeteer-core'
 
@@ -57,16 +56,6 @@ async function openDialog(name, expectedTitle, openFn) {
 
 await openDialog('進度欄標題鈕', '管理進度階段', () => page.click('button[title="點擊管理進度階段"]'))
 await openDialog('地點欄標題鈕', '管理地點選項', () => page.click('button[title="點擊管理地點選項"]'))
-await openDialog('工具列鈕', '管理人名選項', async () => {
-  for (const b of await page.$$('button')) {
-    const t = await b.evaluate(el => el.textContent.trim())
-    if (t === '管理人名選項') {
-      await b.click()
-      return
-    }
-  }
-  throw new Error('找不到「管理人名選項」按鈕')
-})
 
 // 進度篩選鈕循環：有階段 → aria-label 改變並含階段名；無階段 → 可點且標籤維持
 {
@@ -90,18 +79,6 @@ await openDialog('工具列鈕', '管理人名選項', async () => {
     note = String(err).slice(0, 80)
   }
   check('循環進度篩選鈕', ok, note)
-}
-
-// 依文字點按鈕（工具列鈕沒有 title 屬性）
-async function clickByText(text) {
-  for (const b of await page.$$('button')) {
-    const t = await b.evaluate(el => el.textContent.trim())
-    if (t === text) {
-      await b.click()
-      return true
-    }
-  }
-  return false
 }
 
 // 在開啟的 dialog 內填新增框並按 Enter 送出
@@ -131,42 +108,29 @@ async function detailSelectOptions(labelText) {
   return opts
 }
 
-// 5. 管理 dialog 新增人名／地點後，明細下拉應看得到（refresh-on-open）
+// 5. 管理 dialog 新增地點後，明細下拉應看得到（refresh-on-open）
 {
-  const stamp = Date.now() % 100000
-  const tmpOpt = `TMP人名${stamp}`
-  const tmpLoc = `TMP地點${stamp}`
+  const tmpLoc = `TMP地點${Date.now() % 100000}`
   let note = ''
   try {
-    await clickByText('管理人名選項')
-    await sleep(600)
-    await fillDialogInput('新的人名', tmpOpt)
-    await page.keyboard.press('Escape')
-    await sleep(400)
     await page.click('button[title="點擊管理地點選項"]')
     await sleep(600)
     await fillDialogInput('新的地點', tmpLoc)
     await page.keyboard.press('Escape')
     await sleep(400)
-    const personOpts = await detailSelectOptions('誰的朋友')
     const locOpts = await detailSelectOptions('位置')
-    const okOpt = personOpts.includes(tmpOpt)
     const okLoc = locOpts.includes(tmpLoc)
-    if (!okOpt || !okLoc) note = `人名下拉[${personOpts.join(',')}] 位置下拉[${locOpts.join(',')}]`
-    check('明細人名下拉同步新增選項', okOpt, note)
+    if (!okLoc) note = `位置下拉[${locOpts.join(',')}]`
     check('明細位置下拉同步新增選項', okLoc, note)
   } catch (err) {
-    check('明細人名下拉同步新增選項', false, String(err).slice(0, 80))
-    check('明細位置下拉同步新增選項', false, '')
+    check('明細位置下拉同步新增選項', false, String(err).slice(0, 80))
   }
   // 清掉臨時選項
   await page.evaluate(async (names) => {
-    for (const path of ['contact-options', 'contact-locations']) {
-      const list = await (await fetch(`/api/${path}`)).json()
-      for (const hit of list.filter(x => names.includes(x.label)))
-        await fetch(`/api/${path}/${hit.id}`, { method: 'DELETE' })
-    }
-  }, [tmpOpt, tmpLoc])
+    const list = await (await fetch('/api/contact-locations')).json()
+    for (const hit of list.filter(x => names.includes(x.label)))
+      await fetch(`/api/contact-locations/${hit.id}`, { method: 'DELETE' })
+  }, [tmpLoc])
   await sleep(300)
 }
 

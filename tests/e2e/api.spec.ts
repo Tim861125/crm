@@ -196,19 +196,7 @@ describe('/api/contact-stages 階段管理', () => {
   })
 })
 
-describe('/api/contact-options 與 /api/contact-locations', () => {
-  it('人名選項：新增 / 刪除；空字串 → 400', async () => {
-    const opt = await $fetch<{ id: number, label: string }>('/api/contact-options', { method: 'POST', body: { label: '陳爸爸' } })
-    expect(opt.label).toBe('陳爸爸')
-    let list = await $fetch<{ id: number, label: string }[]>('/api/contact-options')
-    expect(list.length).toBe(1)
-    await $fetch(`/api/contact-options/${opt.id}`, { method: 'DELETE' })
-    list = await $fetch('/api/contact-options')
-    expect(list).toEqual([])
-
-    expect(await statusCodeOf($fetch('/api/contact-options', { method: 'POST', body: { label: '' } }))).toBe(400)
-  })
-
+describe('/api/contact-locations', () => {
   it('地點選項：預設只有中壢，可再加／刪', async () => {
     const list = await $fetch<{ id: number, label: string }[]>('/api/contact-locations')
     expect(list.map(l => l.label)).toEqual(['中壢'])

@@ -98,16 +98,7 @@ await probePage('明細 modal', async () => {
 await page.keyboard.press('Escape')
 await sleep(500)
 
-// 三個管理 dialog（只測「新增」輸入框：列表 rename 會即時寫 DB，跳過）
-async function clickByText(text) {
-  for (const b of await page.$$('button')) {
-    const t = await b.evaluate(el => el.textContent.trim())
-    if (t === text) {
-      await b.click()
-      return
-    }
-  }
-}
+// 兩個管理 dialog（只測「新增」輸入框：列表 rename 會即時寫 DB，跳過）
 await probePage('階段管理 dialog（新增框）', async () => {
   await page.click('button[title="點擊管理進度階段"]')
   await sleep(800)
@@ -116,12 +107,6 @@ await page.keyboard.press('Escape')
 await sleep(400)
 await probePage('地點管理 dialog（新增框）', async () => {
   await page.click('button[title="點擊管理地點選項"]')
-  await sleep(800)
-})
-await page.keyboard.press('Escape')
-await sleep(400)
-await probePage('人名選項管理 dialog（新增框）', async () => {
-  await clickByText('管理人名選項')
   await sleep(800)
 })
 await page.keyboard.press('Escape')
