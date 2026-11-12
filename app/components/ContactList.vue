@@ -2,21 +2,16 @@
 import RBadge from '../components/rough/RBadge.vue'
 import RButton from '../components/rough/RButton.vue'
 import RInput from '../components/rough/RInput.vue'
-import RSelect from '../components/rough/RSelect.vue'
 import ContactDetailModal from './ContactDetailModal.vue'
 import ContactOptionsModal from './ContactOptionsModal.vue'
 import {
   api,
-  applyContactFilters,
-  FOLLOW_UP_FREQ_OPTIONS,
   FOLLOW_UP_FREQ_SHORT,
   isOverdue,
   overdueDays,
-  LOCATION_NONE,
+  searchAndSortContacts,
   timeAgo,
-  type Contact,
-  type ContactFilterState,
-  type StepFilter
+  type Contact
 } from '../utils/crm'
 
 const { flash } = useNotice()
@@ -26,32 +21,11 @@ const { data: contacts, status: contactsStatus, error: contactsError, refresh: r
 const { data: stages, refresh: refreshStages } = useFetch('/api/contact-stages', { default: () => [] })
 const { data: locations, refresh: refreshLocations } = useFetch('/api/contact-locations', { default: () => [] })
 
-// ── 篩選器（比照舊總名單的全組語意）──────────────────────────
+// ── 搜尋與排序 ───────────────────────────────────────────────
 const search = ref('')
-const stepFilter = ref<StepFilter>('all')
-const freqFilter = ref('all')
-const locationFilter = ref<string>('all')
-const overdueOnly = ref(false)
 const sortByNext = ref(false)
 
-const filterState = computed<ContactFilterState>(() => ({
-  search: search.value,
-  step: stepFilter.value,
-  freq: freqFilter.value,
-  location: locationFilter.value,
-  overdueOnly: overdueOnly.value,
-  sortByNext: sortByNext.value
-}))
-
-const filtered = computed(() => applyContactFilters(contacts.value || [], filterState.value))
-
-const hasActiveFilter = computed(() =>
-  overdueOnly.value
-  || stepFilter.value !== 'all'
-  || freqFilter.value !== 'all'
-  || locationFilter.value !== 'all'
-  || !!search.value.trim()
-)
+const visible = computed(() => searchAndSortContacts(contacts.value || [], search.value, sortByNext.value))
 
 const stats = computed(() => {
   const list = contacts.value ?? []
@@ -60,61 +34,6 @@ const stats = computed(() => {
     overdue: list.filter(c => isOverdue(c.nextFollowUp)).length
   }
 })
-
-// 進度欄標題顯示：作用中顯示目前階段篩選、未作用則叫「進度」
-// （破題不進階段篩選；'broached'/'unbroached' 是純函式保留的能力，UI 不會設出來）
-const stepFilterValueLabel = computed(() => {
-  if (stepFilter.value !== 'all') {
-    return (stages.value ?? []).find(s => String(s.id) === stepFilter.value)?.label ?? ''
-  }
-  return ''
-})
-
-// 進度欄標題點擊：all → 各階段 → all
-function cycleStepFilter() {
-  const stageIds = (stages.value ?? []).map(s => String(s.id))
-  const pool: StepFilter[] = ['all', ...stageIds]
-  const idx = pool.indexOf(stepFilter.value)
-  stepFilter.value = pool[(idx + 1) % pool.length]!
-}
-
-// 跟進頻率欄標題點擊：all → 各頻率 → all
-function cycleFreqFilter() {
-  const opts = ['all', ...FOLLOW_UP_FREQ_OPTIONS]
-  const idx = opts.indexOf(freqFilter.value)
-  freqFilter.value = opts[(idx + 1) % opts.length]!
-}
-
-// stepFilter 若指向已刪除的階段，畫面會空掉 — 階段清單變動時校正回 all
-watch(stages, (list) => {
-  if (stepFilter.value !== 'all') {
-    const exists = (list ?? []).some(s => String(s.id) === stepFilter.value)
-    if (!exists) stepFilter.value = 'all'
-  }
-})
-
-// locationFilter 指到已刪除的地點同樣會空榜（select 變空白值）— 同樣校正回 all
-watch(locations, (list) => {
-  if (locationFilter.value !== 'all' && locationFilter.value !== LOCATION_NONE) {
-    const exists = (list ?? []).some(l => l.label === locationFilter.value)
-    if (!exists) locationFilter.value = 'all'
-  }
-})
-
-function clearAllFilters() {
-  search.value = ''
-  stepFilter.value = 'all'
-  freqFilter.value = 'all'
-  locationFilter.value = 'all'
-  overdueOnly.value = false
-  // sortByNext 是排序、不是條件，保留不動
-}
-
-const locationFilterItems = computed(() => [
-  { label: '全部地點', value: 'all' },
-  { label: '未設定', value: LOCATION_NONE },
-  ...(locations.value ?? []).map(o => ({ label: o.label, value: o.label }))
-])
 
 // ── 明細 modal / 各管理 dialog ───────────────────────────────
 const detailContact = ref<Contact | null>(null)
@@ -247,23 +166,6 @@ function onEditKeydown(e: KeyboardEvent) {
       </RButton>
     </div>
 
-    <!-- 篩選摘要 -->
-    <div
-      v-if="hasActiveFilter"
-      class="filter-summary"
-    >
-      <RBadge tone="yellow">
-        {{ filtered.length }} / {{ stats.total }} 筆
-      </RBadge>
-      <button
-        type="button"
-        class="link-button"
-        @click="clearAllFilters"
-      >
-        清除所有篩選
-      </button>
-    </div>
-
     <!-- 名單表格（手機可橫滑；tabindex 讓鍵盤也能捲動此區域） -->
     <div
       class="list-scroll"
@@ -276,61 +178,29 @@ function onEditKeydown(e: KeyboardEvent) {
           <tr>
             <th>姓名</th>
             <th>
-              <div class="flex flex-wrap items-center gap-1">
-                <button
-                  type="button"
-                  class="th-filter"
-                  title="點擊管理進度階段"
-                  aria-haspopup="dialog"
-                  @click="stagesOpen = true"
-                >
-                  進度
-                </button>
-                <button
-                  type="button"
-                  class="th-filter"
-                  :class="{ 'is-active': !!stepFilterValueLabel }"
-                  :aria-label="stepFilterValueLabel ? `進度篩選：${stepFilterValueLabel}，點擊換下一個` : '依進度篩選：全部，點擊開始循環階段'"
-                  title="循環進度篩選"
-                  @click="cycleStepFilter"
-                >
-                  {{ stepFilterValueLabel || '篩選' }}
-                </button>
-              </div>
+              <button
+                type="button"
+                class="th-filter"
+                title="點擊管理進度階段"
+                aria-haspopup="dialog"
+                @click="stagesOpen = true"
+              >
+                進度
+              </button>
             </th>
-            <th>
-              <div class="flex flex-wrap items-center gap-1">
-                <button
-                  type="button"
-                  class="th-filter"
-                  title="點擊管理地點選項"
-                  aria-haspopup="dialog"
-                  @click="locationsOpen = true"
-                >
-                  地點
-                </button>
-                <div class="th-select">
-                  <RSelect
-                    v-model="locationFilter"
-                    aria-label="依地點篩選"
-                    :options="locationFilterItems"
-                  />
-                </div>
-              </div>
-            </th>
-            <th>聯絡</th>
             <th>
               <button
                 type="button"
                 class="th-filter"
-                :class="{ 'is-active': freqFilter !== 'all' }"
-                :aria-label="freqFilter === 'all' ? '依跟進頻率篩選：全部，點擊開始循環' : `跟進頻率篩選：${FOLLOW_UP_FREQ_SHORT[freqFilter] || freqFilter}，點擊換下一個`"
-                title="點擊循環頻率篩選"
-                @click="cycleFreqFilter"
+                title="點擊管理地點選項"
+                aria-haspopup="dialog"
+                @click="locationsOpen = true"
               >
-                {{ freqFilter === 'all' ? '跟進' : FOLLOW_UP_FREQ_SHORT[freqFilter] || freqFilter }}
+                地點
               </button>
             </th>
+            <th>聯絡</th>
+            <th>跟進</th>
             <th :aria-sort="sortByNext ? 'descending' : undefined">
               <button
                 type="button"
@@ -347,25 +217,13 @@ function onEditKeydown(e: KeyboardEvent) {
                   aria-hidden="true"
                 >↓</span>
               </button>
-              <button
-                v-if="stats.overdue > 0"
-                type="button"
-                class="overdue-toggle"
-                :class="{ 'is-active': overdueOnly }"
-                :aria-pressed="overdueOnly"
-                :aria-label="`只看逾期（${stats.overdue} 位）`"
-                title="只看逾期"
-                @click="overdueOnly = !overdueOnly"
-              >
-                遲 {{ stats.overdue }}
-              </button>
             </th>
             <th style="width: 150px" />
           </tr>
         </thead>
         <tbody>
           <tr
-            v-for="c in filtered"
+            v-for="c in visible"
             :key="c.id"
             :data-id="c.id"
           >
@@ -524,7 +382,7 @@ function onEditKeydown(e: KeyboardEvent) {
             </td>
           </tr>
 
-          <tr v-if="contactsStatus === 'pending' && !filtered.length">
+          <tr v-if="contactsStatus === 'pending' && !visible.length">
             <td
               colspan="7"
               class="empty-cell"
@@ -547,7 +405,7 @@ function onEditKeydown(e: KeyboardEvent) {
               </button>
             </td>
           </tr>
-          <tr v-else-if="!filtered.length">
+          <tr v-else-if="!visible.length">
             <td
               colspan="7"
               class="empty-cell"
@@ -555,21 +413,8 @@ function onEditKeydown(e: KeyboardEvent) {
               <template v-if="search">
                 找不到符合「{{ search }}」的名單
               </template>
-              <template v-else-if="hasActiveFilter">
-                目前篩選条件下沒有名單
-              </template>
               <template v-else>
                 還沒有任何人名 🔍 按上面的「新增名單」開始
-              </template>
-              <template v-if="hasActiveFilter">
-                ·
-                <button
-                  type="button"
-                  class="link-button"
-                  @click="clearAllFilters"
-                >
-                  清除所有篩選
-                </button>
               </template>
             </td>
           </tr>
