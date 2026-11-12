@@ -6,6 +6,15 @@
   font-display: swap;
 }
 
+/* 真 Bold（官方 tw/NaikaiFont-Bold 依 Regular-Lite 同字表切片），搭配 font-synthesis: none 讓粗體標題真的變粗 */
+@font-face {
+  font-family: 'NaikaiFont';
+  src: url('/fonts/NaikaiFont-Bold-Lite.woff2') format('woff2');
+  font-style: normal;
+  font-weight: 700;
+  font-display: swap;
+}
+
 :root {
   color-scheme: light;
   --paper: #fdfaf3;
