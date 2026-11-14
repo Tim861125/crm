@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import RBadge from '../components/rough/RBadge.vue'
 import RButton from '../components/rough/RButton.vue'
+import RCombobox from '../components/rough/RCombobox.vue'
 import RInput from '../components/rough/RInput.vue'
 import ContactDetailModal from './ContactDetailModal.vue'
 import ContactOptionsModal from './ContactOptionsModal.vue'
@@ -26,6 +27,9 @@ const search = ref('')
 const sortByNext = ref(false)
 
 const visible = computed(() => searchAndSortContacts(contacts.value || [], search.value, sortByNext.value))
+
+// 地點欄編輯建議（RCombobox 以文字為值，同原生 datalist）
+const locationLabels = computed(() => (locations.value ?? []).map(l => l.label))
 
 const stats = computed(() => {
   const list = contacts.value ?? []
@@ -296,15 +300,16 @@ function onEditKeydown(e: KeyboardEvent) {
             <!-- 位置 -->
             <td>
               <template v-if="editingKey === `location-${c.id}`">
-                <input
+                <RCombobox
                   v-model="editingValue"
+                  :options="locationLabels"
                   class="cell-input"
                   :data-edit="`location-${c.id}`"
-                  list="location-options"
                   aria-label="編輯地點"
+                  empty-text="沒有符合的地點，可直接輸入"
                   @blur="commitEdit(c, 'location')"
                   @keydown="onEditKeydown"
-                >
+                />
               </template>
               <template v-else>
                 <button
@@ -432,14 +437,6 @@ function onEditKeydown(e: KeyboardEvent) {
           </tr>
         </tbody>
       </table>
-
-      <datalist id="location-options">
-        <option
-          v-for="l in locations"
-          :key="l.id"
-          :value="l.label"
-        />
-      </datalist>
     </div>
 
     <!-- 明細 modal（v-model:contact：子元件 defineModel('contact') 的命名對應） -->

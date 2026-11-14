@@ -27,31 +27,52 @@ const fieldId = useId()
         class="r-select"
       >
         <SelectValue :placeholder="props.placeholder" /><SelectIcon as-child>
-          <span
-            class="r-select__icon"
+          <!-- 手繪感折角箭头（比照 RCheckbox 的粗圓頭折線），開合時旋轉 -->
+          <svg
+            class="r-select__chev"
+            viewBox="0 0 16 16"
             aria-hidden="true"
-          >↓</span>
+          ><path
+            d="M3.1 6.2 8 11 12.9 5.9"
+            fill="none"
+            stroke="currentColor"
+            stroke-width="1.8"
+            stroke-linecap="round"
+            stroke-linejoin="round"
+          /></svg>
         </SelectIcon>
       </SelectTrigger>
     </RoughFrame>
 
     <SelectPortal>
       <SelectContent
-        class="r-select__popper"
+        class="r-pop-menu"
         position="popper"
-        :side-offset="6"
+        :side-offset="10"
+        :collision-padding="10"
         align="start"
       >
-        <RoughFrame class="r-select__panel">
-          <SelectViewport class="r-select__viewport">
+        <RoughFrame class="r-select__panel r-pop-menu__panel">
+          <SelectViewport class="r-pop-menu__viewport">
             <SelectItem
               v-for="option in options"
               :key="option.value"
-              class="r-select__item"
+              class="r-pop-menu__item"
               :value="option.value"
             >
-              <SelectItemIndicator class="r-select__check">
-                ✓
+              <SelectItemIndicator class="r-pop-menu__check">
+                <!-- 手繪感勾勾，與 RCheckbox 同款 -->
+                <svg
+                  viewBox="0 0 16 16"
+                  aria-hidden="true"
+                ><path
+                  d="M2.8 8.6 6.2 12 13 4.2"
+                  fill="none"
+                  stroke="currentColor"
+                  stroke-width="2.4"
+                  stroke-linecap="round"
+                  stroke-linejoin="round"
+                /></svg>
               </SelectItemIndicator><SelectItemText>{{ option.label }}</SelectItemText>
             </SelectItem>
           </SelectViewport>

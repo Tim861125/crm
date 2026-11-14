@@ -55,20 +55,37 @@ button:disabled { cursor: not-allowed; opacity: .55; }
 .r-input { display: block; width: 100%; min-height: 46px; padding: 9px 12px; border: 0; background: transparent; outline-offset: 2px; }
 .r-input::placeholder { color: var(--muted); }
 /* reka Select 的 trigger（button＋role=combobox）：外觀比照原生日下拉；未選值時 SelectValue 帶 data-placeholder */
-.r-select { display: flex; align-items: center; justify-content: space-between; gap: 8px; width: 100%; min-height: 46px; padding: 9px 12px; border: 0; background: transparent; text-align: left; outline-offset: 2px; }
+.r-select { display: flex; align-items: center; justify-content: space-between; gap: 8px; width: 100%; min-height: 46px; padding: 9px 12px; border: 0; border-radius: 8px; background: transparent; text-align: left; outline-offset: 2px; transition: background-color .15s ease; }
 .r-select [data-placeholder] { color: var(--muted); }
-.r-select__icon { flex: none; color: var(--muted); }
-/* 選單（portalled 至 body，見 RSelect.vue）：面板寬對齊 trigger，超高時內部捲動 */
-.r-select__popper { z-index: 60; outline: none; }
-.r-select__panel { width: var(--reka-select-trigger-width); background: var(--paper); color: var(--ink); }
-.r-select__viewport { max-height: min(320px, var(--reka-select-content-available-height, 320px)); padding: 4px; overflow-y: auto; overscroll-behavior: contain; scrollbar-width: thin; scrollbar-color: rgb(43 43 43 / 30%) transparent; }
-.r-select__item { position: relative; display: flex; align-items: center; gap: 8px; padding: 8px 12px 8px 30px; border-radius: 6px; cursor: pointer; user-select: none; }
+/* 展開時 trigger 微微染上螢光筆底色，與選單形成呼應 */
+.r-select[data-state='open'] { background: rgb(228 87 46 / 7%); }
+/* 手繪折角箭頭：開合旋轉 180°（只動 transform，不動尺寸，RoughFrame 繪製不受影響） */
+.r-select__chev { flex: none; width: 15px; height: 15px; color: var(--muted); transition: transform .18s var(--ease-out); }
+.r-select[data-state='open'] .r-select__chev { transform: rotate(180deg); }
+/* ── 共用下拉面板（portalled 至 body，見 RSelect.vue／RCombobox.vue）──
+   紙面卡片＋落影浮起；side-offset 10px 讓手繪框不與 trigger 框黏成雙線；超高時內部捲動 */
+.r-pop-menu { z-index: 60; outline: none; }
+.r-pop-menu__panel { background: var(--paper); color: var(--ink); box-shadow: 0 14px 30px -16px rgb(43 43 43 / 38%), 0 2px 8px rgb(43 43 43 / 12%); }
+/* 面板寬度：下限對齊各自的 trigger／anchor，上限不超出可用空間（reka CSS 變數） */
+.r-select__panel { min-width: var(--reka-select-trigger-width); max-width: var(--reka-select-content-available-width); }
+.r-combo__panel { min-width: var(--reka-combobox-trigger-width); max-width: var(--reka-combobox-content-available-width); }
+/* 開關動畫掛在內層面板（popper 元素的 transform 由 reka 定位內聯控制，不可覆蓋）；
+   只用 opacity／translate——RoughFrame 依尺寸繪製，縮放會畫錯框 */
+.r-pop-menu[data-state='open'] .r-pop-menu__panel { animation: select-in .16s var(--ease-out); }
+.r-pop-menu[data-state='closed'] .r-pop-menu__panel { animation: select-out .1s ease-in; }
+.r-pop-menu__viewport { max-height: min(320px, var(--reka-select-content-available-height, var(--reka-combobox-content-available-height, 320px))); padding: 7px; overflow-y: auto; overscroll-behavior: contain; scrollbar-width: thin; scrollbar-color: rgb(43 43 43 / 30%) transparent; }
+.r-pop-menu__viewport::-webkit-scrollbar { width: 8px; }
+.r-pop-menu__viewport::-webkit-scrollbar-track { background: transparent; margin: 6px 0; }
+.r-pop-menu__viewport::-webkit-scrollbar-thumb { background: rgb(43 43 43 / 28%); border-radius: 999px; }
+.r-pop-menu__item { position: relative; display: flex; align-items: center; gap: 8px; min-height: 40px; padding: 7px 12px 7px 32px; border-radius: 8px; cursor: pointer; user-select: none; transition: background-color .12s ease; }
 /* 鍵盤巡覽的列高亮走 data-highlighted（非 :hover） */
-.r-select__item[data-highlighted] { background: var(--accent-soft); outline: none; }
-.r-select__item[data-disabled] { color: var(--muted); cursor: not-allowed; }
-.r-select__check { position: absolute; left: 9px; color: var(--accent-strong); font-weight: 700; }
-/* 收合瞬間 reka 會把選取項 clone 進 trigger：clone 帶著 .r-select__check 過來，藏掉免得到處飄 */
-.r-select .r-select__check { display: none; }
+.r-pop-menu__item[data-highlighted] { background: var(--accent-soft); outline: none; }
+.r-pop-menu__item[data-disabled] { color: var(--muted); cursor: not-allowed; }
+.r-pop-menu__check { position: absolute; left: 10px; display: flex; color: var(--accent-strong); }
+.r-pop-menu__check svg { display: block; width: 13px; height: 13px; }
+.r-pop-menu__empty { padding: 9px 12px; color: var(--muted); font-size: .9rem; }
+/* 收合瞬間 reka 會把選取項 clone 進 trigger：clone 帶著勾勾過來，藏掉免得到處飄 */
+.r-select .r-pop-menu__check { display: none; }
 .r-choice { display: inline-flex; align-items: center; gap: 8px; min-height: 36px; cursor: pointer; }
 /* reka Checkbox／RadioGroup 的方框（button role=checkbox／radio），視覺由 data-state 驅動 */
 .r-choice__box { display: inline-flex; flex: none; align-items: center; justify-content: center; width: 18px; height: 18px; padding: 0; border: 1.5px solid var(--ink); border-radius: 5px; background: transparent; color: #fff; }
@@ -171,6 +188,9 @@ button:disabled { cursor: not-allowed; opacity: .55; }
 @keyframes fade-in { from { opacity: 0; } }
 @keyframes rise-in { from { opacity: 0; transform: translateY(6px); } }
 @keyframes dialog-in { from { opacity: 0; transform: translate(-50%, calc(-50% + 10px)); } }
+/* Select 選單開合：僅 opacity／translate，避開 reka popper 的定位 transform（掛於內層面板） */
+@keyframes select-in { from { opacity: 0; transform: translateY(-5px); } }
+@keyframes select-out { to { opacity: 0; transform: translateY(-3px); } }
 
 @media (prefers-reduced-motion: reduce) {
   *, *::before, *::after { scroll-behavior: auto !important; animation-duration: .01ms !important; animation-iteration-count: 1 !important; transition-duration: .01ms !important; }
@@ -271,4 +291,5 @@ button:disabled { cursor: not-allowed; opacity: .55; }
 @media (pointer: coarse) {
   .row-step, .chip-remove { display: inline-flex; align-items: center; justify-content: center; min-width: 44px; min-height: 44px; }
   .cell-edit, .link-button, .show-more-button, .th-filter { min-height: 44px; }
+  .r-pop-menu__item { min-height: 44px; }
 }
