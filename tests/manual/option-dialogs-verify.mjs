@@ -26,7 +26,7 @@ page.on('pageerror', e => errors.push(e.message))
 await page.goto(APP, { waitUntil: 'networkidle0', timeout: 30000 })
 await sleep(800)
 
-// 開 dialog → 確認唯一開啟的 <dialog> 標題 → Esc 關閉
+// 開 dialog → 確認唯一開啟的 [role=dialog]（reka Dialog：掛載＝開啟）標題 → Esc 關閉
 async function openDialog(name, expectedTitle, openFn) {
   let ok = false
   let note = ''
@@ -34,14 +34,14 @@ async function openDialog(name, expectedTitle, openFn) {
     await openFn()
     await sleep(600)
     const state = await page.evaluate(() => {
-      const open = [...document.querySelectorAll('dialog.r-dialog')].filter(d => d.open)
+      const open = [...document.querySelectorAll('[role="dialog"].r-dialog')]
       return { count: open.length, title: open[0]?.querySelector('h2')?.textContent?.trim() ?? '' }
     })
     ok = state.count === 1 && state.title === expectedTitle
     if (!ok) note = `開啟 ${state.count} 個，標題「${state.title}」`
     await page.keyboard.press('Escape')
     await sleep(400)
-    const closed = await page.evaluate(() => ![...document.querySelectorAll('dialog.r-dialog')].some(d => d.open))
+    const closed = await page.evaluate(() => !document.querySelector('[role="dialog"].r-dialog'))
     if (ok && !closed) {
       ok = false
       note = 'Esc 後仍有開啟的 dialog'
@@ -55,10 +55,10 @@ async function openDialog(name, expectedTitle, openFn) {
 await openDialog('進度欄標題鈕', '管理進度階段', () => page.click('button[title="點擊管理進度階段"]'))
 await openDialog('地點欄標題鈕', '管理地點選項', () => page.click('button[title="點擊管理地點選項"]'))
 
-// 在開啟的 dialog 內填新增框並按 Enter 送出
+// 在開啟的 dialog 內填新增框並按 Enter 送出（reka Dialog：掛載中的 .r-dialog 即開啟中）
 async function fillDialogInput(aria, value) {
   await page.evaluate((a, v) => {
-    const input = [...document.querySelectorAll('dialog[open] input')].find(i => i.getAttribute('aria-label') === a)
+    const input = [...document.querySelectorAll('.r-dialog input')].find(i => i.getAttribute('aria-label') === a)
     if (!input) throw new Error(`找不到輸入框 ${a}`)
     input.value = v
     input.dispatchEvent(new Event('input', { bubbles: true }))
@@ -67,16 +67,27 @@ async function fillDialogInput(aria, value) {
   await sleep(600)
 }
 
-// 讀明細 modal 內指定欄位（label span 文字，如「誰的朋友」）select 的全部 option 文字
+// 讀明細 modal 內指定欄位（label span 文字，如「位置」）下拉的全部 option 文字。
+// reka Select 的選單 portalled 至 body 且開啟才掛載：先以真實點擊開下拉，
+// 再從整份文件收 [role=option]（Esc 關下拉、再 Esc 關明細）
 async function detailSelectOptions(labelText) {
   await page.click('button[aria-label$="的明細"]')
   await sleep(800)
-  const opts = await page.evaluate((text) => {
-    const label = [...document.querySelectorAll('dialog[open] label')]
+  const box = await page.evaluate((text) => {
+    const label = [...document.querySelectorAll('.r-dialog label')]
       .find(l => l.querySelector('span')?.textContent.trim() === text)
-    if (!label) throw new Error(`找不到欄位「${text}」`)
-    return [...label.querySelectorAll('option')].map(o => o.textContent.trim())
+    const trigger = label?.querySelector('[role="combobox"]')
+    if (!trigger) throw new Error(`找不到欄位「${text}」的下拉`)
+    const r = trigger.getBoundingClientRect()
+    return { x: r.x + r.width / 2, y: r.y + r.height / 2 }
   }, labelText)
+  await page.mouse.click(box.x, box.y)
+  await sleep(500)
+  const opts = await page.evaluate(() =>
+    [...document.querySelectorAll('[role="option"]')].map(o => o.textContent.trim())
+  )
+  await page.keyboard.press('Escape')
+  await sleep(300)
   await page.keyboard.press('Escape')
   await sleep(400)
   return opts

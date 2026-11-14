@@ -5,7 +5,8 @@
 ## 技術
 
 - **Bun**：runtime + package manager（`bun --bun nuxt dev`）
-- **Nuxt 4**：無 UI 函式庫，UI 全部自己來（比照 lunch-order 的手繪元件套件）
+- **Nuxt 4 ＋ reka-ui**：reka-ui（headless 原語）負責互動與無障礙（Dialog／Select／Tabs／Checkbox／RadioGroup），
+  外觀由手繪元件套件套上（比照 lunch-order 的 rough 視覺）；非 reka 覆蓋的元件（按鈕／輸入框）維持原生語意
 - **Tailwind CSS v4**（`@tailwindcss/vite`）：只供**新寫**的樣式使用，既有手繪樣式仍在 `main.css`；
   不 import preflight、utility 不分層，取捨詳見 `app/assets/css/tailwind.css` 檔首
 - **Drizzle ORM + SQLite**（`bun:sqlite`，檔案在 `data/crm.db`，可用 `NUXT_DB_PATH` 覆寫）

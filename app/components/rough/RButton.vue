@@ -1,4 +1,5 @@
 <script setup lang="ts">
+// reka 未提供 Button 原語（其哲學：原生 button 已是可及性基準），維持原生 <button>
 withDefaults(defineProps<{ variant?: 'primary' | 'default' | 'danger', disabled?: boolean, autofocus?: boolean, type?: 'button' | 'submit' | 'reset' }>(), { variant: 'default', disabled: false, type: 'button' })
 // aria-label 等屬性要落在真正的 <button>，不能留給外層手繪框 div
 defineOptions({ inheritAttrs: false })

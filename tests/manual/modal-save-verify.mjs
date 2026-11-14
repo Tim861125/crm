@@ -17,10 +17,17 @@ await new Promise(r => setTimeout(r, 800))
 await page.click('button[title="明細"]')
 await new Promise(r => setTimeout(r, 1000))
 
-// 第 4 個 combobox 是「等級」（位置/聯絡/誰的朋友/開發夥伴/等級/頻率）
+// 「等級」下拉（以 label span 定位；欄位縮減後 combobox 序號不可靠）：
 // 點開後選 SSR option
-const triggers = await page.$$('[role="combobox"]')
-await triggers[4].click()
+const box = await page.evaluate(() => {
+  const label = [...document.querySelectorAll('.r-dialog label')]
+    .find(l => l.querySelector('span')?.textContent.trim() === '等級')
+  const t = label?.querySelector('[role="combobox"]')
+  if (!t) throw new Error('找不到「等級」下拉')
+  const r = t.getBoundingClientRect()
+  return { x: r.x + r.width / 2, y: r.y + r.height / 2 }
+})
+await page.mouse.click(box.x, box.y)
 await new Promise(r => setTimeout(r, 600))
 const opts = await page.$$('[role="option"]')
 // option 0 = －, option 1 = SSR

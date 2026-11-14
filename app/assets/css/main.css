@@ -52,17 +52,42 @@ button:disabled { cursor: not-allowed; opacity: .55; }
 .r-button--default { color: var(--ink); }
 .r-button--danger { color: #982f1a; }
 .r-input__frame, .r-select__frame { display: block; width: 100%; }
-.r-input, .r-select { display: block; width: 100%; min-height: 46px; padding: 9px 12px; border: 0; background: transparent; outline-offset: 2px; }
+.r-input { display: block; width: 100%; min-height: 46px; padding: 9px 12px; border: 0; background: transparent; outline-offset: 2px; }
 .r-input::placeholder { color: var(--muted); }
+/* reka Select 的 trigger（button＋role=combobox）：外觀比照原生日下拉；未選值時 SelectValue 帶 data-placeholder */
+.r-select { display: flex; align-items: center; justify-content: space-between; gap: 8px; width: 100%; min-height: 46px; padding: 9px 12px; border: 0; background: transparent; text-align: left; outline-offset: 2px; }
+.r-select [data-placeholder] { color: var(--muted); }
+.r-select__icon { flex: none; color: var(--muted); }
+/* 選單（portalled 至 body，見 RSelect.vue）：面板寬對齊 trigger，超高時內部捲動 */
+.r-select__popper { z-index: 60; outline: none; }
+.r-select__panel { width: var(--reka-select-trigger-width); background: var(--paper); color: var(--ink); }
+.r-select__viewport { max-height: min(320px, var(--reka-select-content-available-height, 320px)); padding: 4px; overflow-y: auto; overscroll-behavior: contain; scrollbar-width: thin; scrollbar-color: rgb(43 43 43 / 30%) transparent; }
+.r-select__item { position: relative; display: flex; align-items: center; gap: 8px; padding: 8px 12px 8px 30px; border-radius: 6px; cursor: pointer; user-select: none; }
+/* 鍵盤巡覽的列高亮走 data-highlighted（非 :hover） */
+.r-select__item[data-highlighted] { background: var(--accent-soft); outline: none; }
+.r-select__item[data-disabled] { color: var(--muted); cursor: not-allowed; }
+.r-select__check { position: absolute; left: 9px; color: var(--accent-strong); font-weight: 700; }
+/* 收合瞬間 reka 會把選取項 clone 進 trigger：clone 帶著 .r-select__check 過來，藏掉免得到處飄 */
+.r-select .r-select__check { display: none; }
 .r-choice { display: inline-flex; align-items: center; gap: 8px; min-height: 36px; cursor: pointer; }
-.r-choice input { accent-color: var(--accent); width: 18px; height: 18px; }
+/* reka Checkbox／RadioGroup 的方框（button role=checkbox／radio），視覺由 data-state 驅動 */
+.r-choice__box { display: inline-flex; flex: none; align-items: center; justify-content: center; width: 18px; height: 18px; padding: 0; border: 1.5px solid var(--ink); border-radius: 5px; background: transparent; color: #fff; }
+.r-choice__box[data-state='checked'] { border-color: var(--accent-strong); background: var(--accent-strong); }
+.r-choice__box--radio { border-radius: 50%; }
+.r-choice__box--radio[data-state='checked'] { background: transparent; }
+.r-choice__mark svg { display: block; width: 12px; height: 12px; }
+.r-choice__dot { width: 9px; height: 9px; border-radius: 50%; background: var(--accent-strong); }
+.r-choice-group { display: grid; gap: 6px; }
 .r-card { padding: 20px; }
 .r-card__title { margin: 0 0 12px; font-size: 1.2rem; }
-.r-dialog { width: min(560px, calc(100vw - 32px)); max-height: calc(100dvh - 32px); padding: 26px; border: 0; background: var(--paper); color: var(--ink); }
-.r-dialog::backdrop { background: rgb(43 43 43 / 48%); }
-/* dialog 本身不捲動，內容超出時在手繪框「內側」捲動，捲軸不壓到邊框 */
-.r-dialog[open] { display: flex; flex-direction: column; overflow: hidden; }
+/* ── reka Dialog（原生日 <dialog> 改寫）──
+   overlay＝舊 ::backdrop；開關動畫看 [data-state]（reka Presence 等 animationend 才卸載）；
+   置中以 transform 完成（dialog-in 關鍵格須帶同一 translate 位移，避免動畫頂掉置中） */
+.r-dialog-overlay { position: fixed; inset: 0; z-index: 40; background: rgb(43 43 43 / 48%); }
+.r-dialog-overlay[data-state='open'] { animation: fade-in .2s ease; }
+.r-dialog { position: fixed; left: 50%; top: 50%; transform: translate(-50%, -50%); z-index: 41; display: flex; flex-direction: column; overflow: hidden; width: min(560px, calc(100vw - 32px)); max-height: calc(100dvh - 32px); padding: 26px; border: 0; background: var(--paper); color: var(--ink); }
 .r-dialog > .rough-frame, .r-dialog > .rough-frame > .rough-frame__content { display: flex; flex-direction: column; min-height: 0; }
+/* dialog 本身不捲動，內容超出時在手繪框「內側」捲動，捲軸不壓到邊框 */
 .r-dialog__content { min-height: 0; margin: 4px; padding: 14px 16px 14px 18px; overflow-y: auto; overscroll-behavior: contain; scrollbar-width: thin; scrollbar-color: rgb(43 43 43 / 30%) transparent; }
 .r-dialog__content > h2 { margin: 0 0 12px; }
 /* 對話框內的捲動區：細捲軸、與手繪邊框保持距離，上下虛線提示可捲動 */
@@ -128,9 +153,8 @@ button:disabled { cursor: not-allowed; opacity: .55; }
 /* 資料載入後出現的內容柔和進場 */
 .follow-list, .worksheet, .tab-panel, .log-list, .r-table-wrap, .empty-state { animation: rise-in .26s var(--ease-out) both; }
 
-/* 彈窗 */
-.r-dialog[open] { animation: dialog-in .2s var(--ease-out); }
-.r-dialog[open]::backdrop { animation: fade-in .2s ease; }
+/* 彈窗（reka Dialog 以 data-state 標示開關；overlay 的淡入另見檔頭 dialog 區段） */
+.r-dialog[data-state='open'] { animation: dialog-in .2s var(--ease-out); }
 
 /* 提示訊息 */
 .toast-enter-active { transition: opacity .2s var(--ease-out), transform .2s var(--ease-out); }
@@ -146,7 +170,7 @@ button:disabled { cursor: not-allowed; opacity: .55; }
 
 @keyframes fade-in { from { opacity: 0; } }
 @keyframes rise-in { from { opacity: 0; transform: translateY(6px); } }
-@keyframes dialog-in { from { opacity: 0; transform: translateY(10px); } }
+@keyframes dialog-in { from { opacity: 0; transform: translate(-50%, calc(-50% + 10px)); } }
 
 @media (prefers-reduced-motion: reduce) {
   *, *::before, *::after { scroll-behavior: auto !important; animation-duration: .01ms !important; animation-iteration-count: 1 !important; transition-duration: .01ms !important; }
@@ -171,8 +195,14 @@ button:disabled { cursor: not-allowed; opacity: .55; }
 .list-toolbar { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; margin: 18px 0 12px; }
 .list-search { width: min(100%, 280px); }
 .list-scroll { overflow-x: auto; }
-.list-scroll .r-table { min-width: 760px; }
-.list-scroll .r-table td { vertical-align: top; }
+/* 固定欄寬防跑版：inline 編輯把按鈕換成輸入框時，auto 佈局會整表重排；
+   table-layout: fixed 讓欄寬只認 colgroup（見 ContactList.vue）。
+   min-width＝各固定欄總和(816)＋進度欄下限(200)：低於總寬時整表橫滾，
+   不可只設 816 —— 那會把 auto 的進度欄壓成 0px，表頭按鈕溢出壓到相鄰欄（誤點來源） */
+.list-scroll .r-table { min-width: 1016px; table-layout: fixed; }
+.list-scroll .r-table td { vertical-align: top; overflow-wrap: anywhere; }
+/* 編輯框貼滿欄位寬，寬度不再由 content-size 決定（蓋過 .cell-input 的固定寬） */
+.list-scroll .cell-input { width: 100%; }
 .th-filter { border: 0; background: transparent; font: inherit; font-weight: 700; padding: 2px 7px; }
 .th-filter:hover { color: var(--accent-strong); }
 .th-filter.is-active { background: var(--accent-soft); }

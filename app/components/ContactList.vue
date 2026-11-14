@@ -174,6 +174,17 @@ function onEditKeydown(e: KeyboardEvent) {
       aria-label="名單表格，可橫向捲動"
     >
       <table class="r-table">
+        <!-- 欄寬固定在 colgroup（搭配 table-layout: fixed）：
+             編輯切換（按鈕↔輸入框）不再觸發整表重排 -->
+        <colgroup>
+          <col style="width: 130px">
+          <col><!-- 進度：吃掉剩餘寬度 -->
+          <col style="width: 110px">
+          <col style="width: 160px">
+          <col style="width: 56px">
+          <col style="width: 210px">
+          <col style="width: 150px">
+        </colgroup>
         <thead>
           <tr>
             <th>姓名</th>
@@ -218,7 +229,7 @@ function onEditKeydown(e: KeyboardEvent) {
                 >↓</span>
               </button>
             </th>
-            <th style="width: 150px" />
+            <th />
           </tr>
         </thead>
         <tbody>
@@ -367,6 +378,7 @@ function onEditKeydown(e: KeyboardEvent) {
             <!-- 動作 -->
             <td style="white-space: nowrap">
               <RButton
+                title="明細"
                 :aria-label="`開啟「${c.name}」的明細`"
                 @click="detailContact = c"
               >

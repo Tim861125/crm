@@ -39,10 +39,11 @@ const picking = ref<Record<ProspectSection, string>>({
   network: ''
 })
 
-const contactItems = computed(() => [
-  { label: '挑一位名單對象…', value: '' },
-  ...(contacts.value || []).map(c => ({ label: c.name, value: String(c.id) }))
-])
+// reka Select 的 item 不容空字串 value：「尚未挑人」改由 placeholder 呈現
+// （picking 初始／送出後為 ''，不對照任何 item → trigger 顯示 placeholder）
+const contactItems = computed(() =>
+  (contacts.value || []).map(c => ({ label: c.name, value: String(c.id) }))
+)
 
 // 等級徽章：SSR 紅、SR 黃、其他灰
 function levelTone(level: string | null): 'red' | 'yellow' | 'gray' {
@@ -116,6 +117,7 @@ async function patchContact(c: Contact, key: 'level' | 'status', value: string) 
       >
         <RSelect
           v-model="picking[section]"
+          placeholder="挑一位名單對象…"
           :aria-label="`加入「${PROSPECT_SECTION_META[section].title}」區塊的名單對象`"
           :options="contactItems"
         />

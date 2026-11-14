@@ -43,8 +43,11 @@ const EDITABLE_FIELDS = [
 // 表單草稿：每次「打開 modal」或「換人」時重置為當前資料（比照舊版 open watch 行為）
 const form = ref<Record<string, string>>({})
 
-// 原生 select 允許空字串 value（不像 reka 會 throw），「－」清項直接以 '' 表示
-const withNone = (items: { label: string, value: string }[]) => [{ label: '－', value: '' }, ...items]
+// reka Select 禁止空字串 item value（會被當成「未選/placeholder」而 throw，commit 9f8c665）。
+// 可清空的下拉一律以哨兵代空值（開啟時 null → NONE、存檔時 NONE → null）。
+const NONE = '__none__'
+const SELECT_FIELDS = new Set(['location', 'level', 'followUpFreq'])
+const withNone = (items: { label: string, value: string }[]) => [{ label: '－', value: NONE }, ...items]
 
 // 未儲存變更偵測：關閉（Esc／背景／關閉鈕）前提示，避免誤丟編輯
 const baseline = ref<Record<string, string>>({})
@@ -58,7 +61,11 @@ function guardClose(): boolean {
 watch([open, () => contact.value?.id], ([o]) => {
   if (o && contact.value) {
     form.value = Object.fromEntries(
-      EDITABLE_FIELDS.map(k => [k, contact.value![k as keyof Contact] as string | null ?? ''])
+      EDITABLE_FIELDS.map((k) => {
+        const v = contact.value![k as keyof Contact] as string | null ?? ''
+        // 下拉欄位空值改填哨兵（reka 不接受 ''，見 withNone 註解）
+        return [k, SELECT_FIELDS.has(k) && !v ? NONE : v]
+      })
     )
     baseline.value = { ...form.value }
   }
@@ -69,11 +76,11 @@ const saving = ref(false)
 async function save() {
   const c = contact.value
   if (!c) return
-  // '' → null；後端會重算 nextFollowUp
+  // '' / NONE → null；後端會重算 nextFollowUp
   const body = Object.fromEntries(
     EDITABLE_FIELDS.map((k) => {
       const v = (form.value[k] ?? '').trim()
-      return [k, v || null]
+      return [k, !v || v === NONE ? null : v]
     })
   )
   saving.value = true
