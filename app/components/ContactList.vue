@@ -187,7 +187,7 @@ function onEditKeydown(e: KeyboardEvent) {
           <col style="width: 160px">
           <col style="width: 56px">
           <col style="width: 210px">
-          <col style="width: 150px">
+          <col style="width: 180px"><!-- 動作：两颗 RButton（74×2）＋ td padding 24 ＝ 172，少于此删除钮会被 .list-scroll 裁右缘 -->
         </colgroup>
         <thead>
           <tr>

@@ -217,9 +217,9 @@ button:disabled { cursor: not-allowed; opacity: .55; }
 .list-scroll { overflow-x: auto; }
 /* 固定欄寬防跑版：inline 編輯把按鈕換成輸入框時，auto 佈局會整表重排；
    table-layout: fixed 讓欄寬只認 colgroup（見 ContactList.vue）。
-   min-width＝各固定欄總和(816)＋進度欄下限(200)：低於總寬時整表橫滾，
-   不可只設 816 —— 那會把 auto 的進度欄壓成 0px，表頭按鈕溢出壓到相鄰欄（誤點來源） */
-.list-scroll .r-table { min-width: 1016px; table-layout: fixed; }
+   min-width＝各固定欄總和(846)＋進度欄下限(200)：低於總寬時整表橫滾，
+   不可只設 846 —— 那會把 auto 的進度欄壓成 0px，表頭按鈕溢出壓到相鄰欄（誤點來源） */
+.list-scroll .r-table { min-width: 1046px; table-layout: fixed; }
 .list-scroll .r-table td { vertical-align: top; overflow-wrap: anywhere; }
 /* 編輯框貼滿欄位寬，寬度不再由 content-size 決定（蓋過 .cell-input 的固定寬） */
 .list-scroll .cell-input { width: 100%; }
