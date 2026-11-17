@@ -5,7 +5,7 @@ import { contacts, prospects } from '../../db/schema'
 // 同一區塊同一人不重複；已存在則直接回傳既有列（冪等）。
 export default defineEventHandler(async (event) => {
   const data = await readValidatedBody(event, prospectInputSchema.parse)
-  const db = useDb()
+  const db = useDb(event)
 
   // 確認這位對象存在
   const [c] = await db

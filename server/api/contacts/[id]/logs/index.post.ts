@@ -9,7 +9,7 @@ export default defineEventHandler(async (event) => {
   }
 
   const data = await readValidatedBody(event, followUpLogSchema.parse)
-  const db = useDb()
+  const db = useDb(event)
 
   const [contact] = await db.select().from(contacts).where(eq(contacts.id, id))
   if (!contact) {

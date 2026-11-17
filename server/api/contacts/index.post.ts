@@ -3,7 +3,7 @@ import { contacts } from '../../db/schema'
 // 新增名單。nextFollowUp 由後端依「最後跟進日 + 頻率」計算，不接受前端輸入。
 export default defineEventHandler(async (event) => {
   const data = await readValidatedBody(event, contactInputSchema.parse)
-  const db = useDb()
+  const db = useDb(event)
 
   const [created] = await db
     .insert(contacts)

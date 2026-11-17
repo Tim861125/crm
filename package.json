@@ -5,11 +5,13 @@
   "scripts": {
     "dev": "bun --bun nuxt dev",
     "build": "nuxt build",
-    "preview": "nuxt preview",
     "postinstall": "nuxt prepare",
     "lint": "eslint .",
     "typecheck": "nuxt typecheck",
     "test": "vitest run",
+    "preview": "NITRO_PRESET=node-server nuxt preview",
+    "deploy": "nuxt build && wrangler deploy",
+    "cf-typegen": "wrangler types",
     "db:generate": "drizzle-kit generate",
     "db:migrate": "bun server/db/migrate.ts"
   },
@@ -22,6 +24,7 @@
     "zod": "^4.4.3"
   },
   "devDependencies": {
+    "@cloudflare/workers-types": "^5.20261117.1",
     "@nuxt/eslint": "^1.16.0",
     "@nuxt/test-utils": "^4.3.4",
     "@tailwindcss/vite": "^4.3.5",
@@ -33,6 +36,7 @@
     "tailwindcss": "^4.3.5",
     "typescript": "^6.0.3",
     "vitest": "^3.2.4",
-    "vue-tsc": "^3.3.5"
+    "vue-tsc": "^3.3.5",
+    "wrangler": "^4.163.0"
   }
 }

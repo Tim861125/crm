@@ -9,7 +9,7 @@ export default defineEventHandler(async (event) => {
   }
 
   const data = await readValidatedBody(event, contactPatchSchema.parse)
-  const db = useDb()
+  const db = useDb(event)
 
   const [current] = await db.select().from(contacts).where(eq(contacts.id, id))
   if (!current) {

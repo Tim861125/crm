@@ -2,8 +2,8 @@ import { asc, eq } from 'drizzle-orm'
 import { contacts, prospects } from '../../db/schema'
 
 // 取得每日任務名單：帶出所引用的 contact 明細（innerJoin）
-export default defineEventHandler(async () => {
-  const db = useDb()
+export default defineEventHandler(async (event) => {
+  const db = useDb(event)
   return await db
     .select({
       id: prospects.id,

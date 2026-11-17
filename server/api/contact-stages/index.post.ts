@@ -4,7 +4,7 @@ import { contactStages } from '../../db/schema'
 // 新增進度階段
 export default defineEventHandler(async (event) => {
   const data = await readValidatedBody(event, contactStageInputSchema.parse)
-  const db = useDb()
+  const db = useDb(event)
 
   // 排到最後：比現有最大排序再 +1
   const [last] = await db

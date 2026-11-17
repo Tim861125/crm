@@ -3,7 +3,7 @@ import { contactLocations } from '../../db/schema'
 // 新增地點選項
 export default defineEventHandler(async (event) => {
   const data = await readValidatedBody(event, contactLocationInputSchema.parse)
-  const db = useDb()
+  const db = useDb(event)
 
   const [created] = await db
     .insert(contactLocations)

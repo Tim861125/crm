@@ -8,3 +8,9 @@ data/
 .env
 headroom.log
 *.log
+.wrangler/
+.dev.vars
+# 由 just typegen（wrangler types）產生，不進版控
+worker-configuration.d.ts
+# wrangler types 可能在 types 目錄留下空目錄，一併排除
+worker-configuration.d.ts/

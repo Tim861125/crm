@@ -9,7 +9,7 @@ export default defineEventHandler(async (event) => {
   }
 
   const data = await readValidatedBody(event, prospectPatchSchema.parse)
-  const db = useDb()
+  const db = useDb(event)
 
   const patch: Record<string, unknown> = {}
   if ('date' in data) patch.date = data.date || null

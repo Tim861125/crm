@@ -8,7 +8,7 @@ export default defineEventHandler(async (event) => {
     throw createError({ statusCode: 400, statusMessage: '選項 id 不正確' })
   }
 
-  const db = useDb()
+  const db = useDb(event)
   const [removed] = await db.delete(contactLocations).where(eq(contactLocations.id, id)).returning()
   if (!removed) {
     throw createError({ statusCode: 404, statusMessage: '找不到這個選項' })

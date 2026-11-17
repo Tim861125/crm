@@ -1,8 +1,17 @@
 import type { H3Event } from 'h3'
-import { getDb } from '../db'
+import { drizzle as drizzleD1, type DrizzleD1Database } from 'drizzle-orm/d1'
+import { getDb, type CrmDatabase } from '../db'
+import * as schema from '../db/schema'
 
-// API handlers 取得 drizzle 實例；保留與舊專案相同的命名，未來換 D1 / 其他資料庫時只改這一層。
-// 單人 SQLite 模式下 event 其實用不到，參數保留為 optional 維持呼叫慣例。
-export function useDb(_event?: H3Event) {
+// Workers 部署時Nitro 會把 wrangler.jsonc 的 binding 注入 event.context.cloudflare.env；
+// 本地 bun／node 跑沒有這層，回退到 SQLite singleton。
+// 兩條 driver 的 select/insert/update/delete API 相同，僅執行為 async，
+// 故 API handlers 一律 await，兩邊同形。
+export type CrmDb = CrmDatabase | DrizzleD1Database<typeof schema>
+
+export function useDb(event?: H3Event): CrmDb {
+  const d1 = (event?.context as { cloudflare?: { env?: { DB?: D1Database } } })
+    ?.cloudflare?.env?.DB
+  if (d1) return drizzleD1(d1, { schema })
   return getDb()
 }

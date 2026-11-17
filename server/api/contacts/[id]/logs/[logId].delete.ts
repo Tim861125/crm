@@ -9,7 +9,7 @@ export default defineEventHandler(async (event) => {
     throw createError({ statusCode: 400, statusMessage: '跟進紀錄 id 不正確' })
   }
 
-  const db = useDb()
+  const db = useDb(event)
   const [removed] = await db
     .delete(followUpLogs)
     .where(and(eq(followUpLogs.id, logId), eq(followUpLogs.contactId, contactId)))

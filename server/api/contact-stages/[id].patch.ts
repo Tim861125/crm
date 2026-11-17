@@ -9,7 +9,7 @@ export default defineEventHandler(async (event) => {
   }
 
   const data = await readValidatedBody(event, contactStagePatchSchema.parse)
-  const db = useDb()
+  const db = useDb(event)
 
   // 沒有任何變動欄位 → 直接回傳現況（避免 drizzle 對空 set 報錯）
   if (Object.keys(data).length === 0) {

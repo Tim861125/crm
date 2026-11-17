@@ -8,7 +8,7 @@ export default defineEventHandler(async (event) => {
     throw createError({ statusCode: 400, statusMessage: '名單 id 不正確' })
   }
 
-  const db = useDb()
+  const db = useDb(event)
 
   // 先刪子表（FK 沒設 cascade）、再刪名單本身
   await db.delete(followUpLogs).where(eq(followUpLogs.contactId, id))

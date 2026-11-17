@@ -1,0 +1,20 @@
+{
+  // 本檔為參考用：實際部署的 config 由 Nitro 在 build 時產生於 .output/server/wrangler.json
+  // （nuxt.config.ts 的 cloudflare.deployConfig: true）。D1 binding 兩邊必須一致。
+  "$schema": "node_modules/wrangler/config-schema.json",
+  "name": "crm",
+  "main": ".output/server/index.mjs",
+  "compatibility_date": "2026-11-17",
+  "compatibility_flags": ["nodejs_compat"],
+  "observability": {
+    "enabled": true
+  },
+  "d1_databases": [
+    {
+      "binding": "DB",
+      "database_name": "amway-crm-db",
+      "database_id": "b6cbff79-826c-4f74-8354-2e3778383b8f",
+      "migrations_dir": "server/db/migrations"
+    }
+  ]
+}

@@ -8,7 +8,7 @@ export default defineEventHandler(async (event) => {
     throw createError({ statusCode: 400, statusMessage: '名單 id 不正確' })
   }
 
-  const db = useDb()
+  const db = useDb(event)
   return await db
     .select()
     .from(followUpLogs)
