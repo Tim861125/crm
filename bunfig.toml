@@ -1,0 +1,4 @@
+# Bun 設定。測試的正牌跑法是 `bun run test`（vitest）；
+# 直接打 `bun test` 時靠下方 preload 補上 VITEST 環境變數，讓 e2e 走 node-server preset。
+[test]
+preload = ["./tests/bun-test-preload.ts"]
