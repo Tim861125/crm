@@ -185,7 +185,7 @@ function onEditKeydown(e: KeyboardEvent) {
           <col><!-- 進度：吃掉剩餘寬度 -->
           <col style="width: 110px">
           <col style="width: 160px">
-          <col style="width: 56px">
+          <col style="width: 72px"><!-- 跟進：17px 中文字兩字＋padding 24 ≒ 58，低於 58 時「跟進」會逐字換行變直排 -->
           <col style="width: 210px">
           <col style="width: 180px"><!-- 動作：两颗 RButton（74×2）＋ td padding 24 ＝ 172，少于此删除钮会被 .list-scroll 裁右缘 -->
         </colgroup>
