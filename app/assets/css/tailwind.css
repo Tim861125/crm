@@ -31,6 +31,6 @@
   --color-mark-green: var(--green);
   --color-mark-yellow: var(--yellow);
   --color-mark-red: var(--red);
-  --color-mark-gray: #e9e6dd;
+  --color-mark-gray: var(--chip);
   --font-hand: 'NaikaiFont', sans-serif;
 }
