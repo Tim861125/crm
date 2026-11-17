@@ -11,8 +11,14 @@ import { ComboboxAnchor, ComboboxContent, ComboboxEmpty, ComboboxInput, Combobox
 //   1) 點面板選項時 focus 被搶 → content 上 mousedown.prevent 保住 focus（click 仍正常抵達選取）
 //   2) Esc／選取後 reka 收合時可能把 input blur 掉 → 那類「內部收合 blur」吞掉一次，
 //      只放行使用者真正點到別處的 blur（Esc 由 capture 先行標記，父層 @keydown 才能走到 cancelEdit）
-const props = withDefaults(defineProps<{ modelValue?: string | null, options: string[], placeholder?: string, emptyText?: string, id?: string }>(), { modelValue: null, emptyText: '沒有符合的選項' })
-const emit = defineEmits<{ 'update:modelValue': [value: string] }>()
+//
+// creatable：選單最下方常駐「＋ 新增」列（主流 creatable 行為）——打字後與現有選項
+//   不完全相同（比對不分大小寫）才可按；點選／Enter 不改 term（打的字就是新值），
+//   只 emit create，由父層負責落庫與刷新選項。空白或已完全比對時列呈灰色（reka 會略過 disabled 列）。
+// deletable：每個選項右緣掛 × 刪除鈕；按下只 emit delete，不會順道選取該項
+//   （click.stop 擋 option 列的 click 選取；mousedown 自己 prevent 保 focus、stop 免觸發 content 層防搶焦）。
+const props = withDefaults(defineProps<{ modelValue?: string | null, options: string[], placeholder?: string, emptyText?: string, id?: string, creatable?: boolean, deletable?: boolean, createLabel?: string }>(), { modelValue: null, emptyText: '沒有符合的選項', creatable: false, deletable: false, createLabel: '新增選項' })
+const emit = defineEmits<{ 'update:modelValue': [value: string], 'create': [label: string], 'delete': [label: string] }>()
 // class／aria-label／@blur／@keydown 等要落在原生 input，不能留給外層 anchor div
 defineOptions({ inheritAttrs: false })
 const attrs = useAttrs()
@@ -38,6 +44,18 @@ const filtered = computed(() => {
   return props.options.filter(o => o.toLowerCase().includes(t))
 })
 
+// ── creatable：底部「＋ 新增」列 ──────────────────────────────
+// 選單項 value 用哨兵字串（reka 禁止空字串；比對用不到它，只在 onRootUpdate 攔截）
+const CREATE_VALUE = '__r_combobox_create__'
+// 可建立＝有實際輸入且與現有選項不完全相同（不分大小寫）；否則列灰色不可按
+const createEnabled = computed(() => {
+  const t = term.value.trim()
+  if (!t) return false
+  const lower = t.toLowerCase()
+  return !props.options.some(o => o.toLowerCase() === lower)
+})
+const createText = computed(() => createEnabled.value ? `新增「${term.value.trim()}」` : props.createLabel)
+
 // ── blur 攔截：內部收合造成的一次性 blur 不轉給父層 ─────────────
 let suppressBlurUntil = 0
 function suppressBlur() {
@@ -55,6 +73,13 @@ function onEscCapture() {
   if (open.value) suppressBlur()
 }
 function onRootUpdate(value: AcceptableValue) {
+  if (value === CREATE_VALUE) {
+    // 「＋ 新增」列：term 保持打過的字（＝新選項名），只交 create 給父層；
+    // 收合由 reka 完成，其連帶 blur 一律吞掉（否則父層 blur 提交會搶在建檔前）
+    suppressBlur()
+    emit('create', term.value.trim())
+    return
+  }
   setTerm(String(value ?? ''))
   if (open.value) suppressBlur() // 選取會順勢收合，吞掉隨後那次 blur
 }
@@ -66,6 +91,7 @@ function onRootUpdate(value: AcceptableValue) {
     :model-value="term"
     ignore-filter
     open-on-focus
+    open-on-click
     highlight-on-hover
     :reset-search-term-on-blur="false"
     :reset-search-term-on-select="false"
@@ -122,6 +148,32 @@ function onRootUpdate(value: AcceptableValue) {
                   stroke-linejoin="round"
                 /></svg>
               </ComboboxItemIndicator><span>{{ opt }}</span>
+              <button
+                v-if="props.deletable"
+                type="button"
+                class="r-pop-menu__x"
+                title="刪除此選項"
+                :aria-label="`刪除選項「${opt}」`"
+                @mousedown.prevent.stop
+                @keydown.stop
+                @click.stop.prevent="emit('delete', opt)"
+              >
+                ×
+              </button>
+            </ComboboxItem>
+            <!-- creatable：常駐最下方的「＋ 新增」列（空白／已完全比對時 disabled 變灰） -->
+            <ComboboxItem
+              v-if="props.creatable"
+              class="r-pop-menu__item r-pop-menu__item--create"
+              :value="CREATE_VALUE"
+              :text-value="createEnabled ? term.trim() : ''"
+              :disabled="!createEnabled"
+            >
+              <span
+                class="r-pop-menu__plus"
+                aria-hidden="true"
+              >＋</span>
+              <span>{{ createText }}</span>
             </ComboboxItem>
           </ComboboxViewport>
         </RoughFrame>

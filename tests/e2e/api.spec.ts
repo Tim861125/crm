@@ -207,6 +207,22 @@ describe('/api/contact-locations', () => {
   })
 })
 
+describe('/api/contact-methods', () => {
+  it('聯絡方式選項：預設 LINE／IG／FB，可再加／刪', async () => {
+    const list = await $fetch<{ id: number, label: string }[]>('/api/contact-methods')
+    expect(list.map(l => l.label)).toEqual(['LINE', 'IG', 'FB'])
+    const added = await $fetch<{ id: number, label: string }>('/api/contact-methods', { method: 'POST', body: { label: 'email' } })
+    expect((await $fetch('/api/contact-methods')).map((l: { label: string }) => l.label)).toEqual(['LINE', 'IG', 'FB', 'email'])
+    await $fetch(`/api/contact-methods/${added.id}`, { method: 'DELETE' })
+    expect((await $fetch('/api/contact-methods')).map((l: { label: string }) => l.label)).toEqual(['LINE', 'IG', 'FB'])
+    expect(await statusCodeOf($fetch(`/api/contact-methods/${added.id}`, { method: 'DELETE' }))).toBe(404)
+  })
+
+  it('空名稱被擋 400', async () => {
+    expect(await statusCodeOf($fetch('/api/contact-methods', { method: 'POST', body: { label: '  ' } }))).toBe(400)
+  })
+})
+
 describe('/api/prospects 每日任務', () => {
   const T = '2026-11-07'
   let contact: Contact

@@ -1,12 +1,16 @@
-// 驗證兩個管理 dialog 入口與地點選項同步：
+// 驗證管理 dialog 入口與地點欄位現況：
 //   1. 進度欄標題鈕 →「管理進度階段」dialog（Esc 可關）
-//   2. 地點欄標題鈕 →「管理地點選項」dialog（Esc 可關）
-//   3. 管理 dialog 新增地點後，明細位置下拉看得到（refresh-on-open）
-//   4. 全程無 pageerror
+//   2. 地點欄標題已無管理入口（地點增刪改在編輯下拉內，行為見 location-creatable-verify.mjs）
+//   3. 全程無 pageerror
 // 用法：先起 dev server（localhost:1138），再 bun tests/manual/option-dialogs-verify.mjs
 import puppeteer from 'puppeteer-core'
 
 const APP = 'http://localhost:1138/'
+const CHROME = process.env.CHROME_PATH ?? (
+  process.platform === 'darwin'
+    ? '/Applications/Google Chrome.app/Contents/MacOS/Google Chrome'
+    : '/usr/bin/google-chrome'
+)
 const sleep = ms => new Promise(r => setTimeout(r, ms))
 const errors = []
 const failures = []
@@ -17,7 +21,7 @@ function check(name, ok, note = '') {
 }
 
 const browser = await puppeteer.launch({
-  executablePath: '/Applications/Google Chrome.app/Contents/MacOS/Google Chrome',
+  executablePath: CHROME,
   headless: true,
   args: ['--no-sandbox', '--disable-dev-shm-usage']
 })
@@ -52,71 +56,15 @@ async function openDialog(name, expectedTitle, openFn) {
   check(`${name} →「${expectedTitle}」`, ok, note)
 }
 
-await openDialog('進度欄標題鈕', '管理進度階段', () => page.click('button[title="點擊管理進度階段"]'))
-await openDialog('地點欄標題鈕', '管理地點選項', () => page.click('button[title="點擊管理地點選項"]'))
+await openDialog('進度欄齒輪鈕', '管理進度階段', () => page.click('button[title="管理進度階段"]'))
 
-// 在開啟的 dialog 內填新增框並按 Enter 送出（reka Dialog：掛載中的 .r-dialog 即開啟中）
-async function fillDialogInput(aria, value) {
-  await page.evaluate((a, v) => {
-    const input = [...document.querySelectorAll('.r-dialog input')].find(i => i.getAttribute('aria-label') === a)
-    if (!input) throw new Error(`找不到輸入框 ${a}`)
-    input.value = v
-    input.dispatchEvent(new Event('input', { bubbles: true }))
-    input.dispatchEvent(new KeyboardEvent('keydown', { key: 'Enter', bubbles: true }))
-  }, aria, value)
-  await sleep(600)
-}
-
-// 讀明細 modal 內指定欄位（label span 文字，如「位置」）下拉的全部 option 文字。
-// reka Select 的選單 portalled 至 body 且開啟才掛載：先以真實點擊開下拉，
-// 再從整份文件收 [role=option]（Esc 關下拉、再 Esc 關明細）
-async function detailSelectOptions(labelText) {
-  await page.click('button[aria-label$="的明細"]')
-  await sleep(800)
-  const box = await page.evaluate((text) => {
-    const label = [...document.querySelectorAll('.r-dialog label')]
-      .find(l => l.querySelector('span')?.textContent.trim() === text)
-    const trigger = label?.querySelector('[role="combobox"]')
-    if (!trigger) throw new Error(`找不到欄位「${text}」的下拉`)
-    const r = trigger.getBoundingClientRect()
-    return { x: r.x + r.width / 2, y: r.y + r.height / 2 }
-  }, labelText)
-  await page.mouse.click(box.x, box.y)
-  await sleep(500)
-  const opts = await page.evaluate(() =>
-    [...document.querySelectorAll('[role="option"]')].map(o => o.textContent.trim())
-  )
-  await page.keyboard.press('Escape')
-  await sleep(300)
-  await page.keyboard.press('Escape')
-  await sleep(400)
-  return opts
-}
-
-// 3. 管理 dialog 新增地點後，明細下拉應看得到（refresh-on-open）
+// 2. 地點欄標題：應為純 <th> 文字（無管理鈕）
 {
-  const tmpLoc = `TMP地點${Date.now() % 100000}`
-  let note = ''
-  try {
-    await page.click('button[title="點擊管理地點選項"]')
-    await sleep(600)
-    await fillDialogInput('新的地點', tmpLoc)
-    await page.keyboard.press('Escape')
-    await sleep(400)
-    const locOpts = await detailSelectOptions('位置')
-    const okLoc = locOpts.includes(tmpLoc)
-    if (!okLoc) note = `位置下拉[${locOpts.join(',')}]`
-    check('明細位置下拉同步新增選項', okLoc, note)
-  } catch (err) {
-    check('明細位置下拉同步新增選項', false, String(err).slice(0, 80))
-  }
-  // 清掉臨時選項
-  await page.evaluate(async (names) => {
-    const list = await (await fetch('/api/contact-locations')).json()
-    for (const hit of list.filter(x => names.includes(x.label)))
-      await fetch(`/api/contact-locations/${hit.id}`, { method: 'DELETE' })
-  }, [tmpLoc])
-  await sleep(300)
+  const hasBtn = await page.evaluate(() => !!document.querySelector('button[title="點擊管理地點選項"]'))
+  const plain = await page.evaluate(() =>
+    [...document.querySelectorAll('.r-table th')].some(th => th.textContent.trim() === '地點' && !th.querySelector('button'))
+  )
+  check('地點欄標題已無管理入口', !hasBtn && plain, !hasBtn && plain ? '' : (hasBtn ? '管理鈕仍在' : '找不到純文字「地點」欄頭'))
 }
 
 check('無 pageerror', errors.length === 0, errors.slice(0, 3).join(' | '))

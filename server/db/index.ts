@@ -13,6 +13,11 @@ export function getDb(): CrmDatabase {
     if (!seeded || Number(seeded[0]) === 0) {
       db.run(sql`INSERT INTO contact_locations (label, created_at) VALUES ('中壢', 0)`)
     }
+    // 聯絡方式選項預設 LINE／IG／FB（常見聯絡管道，省去冷起手動建檔）
+    const [seededMethods] = db.values<[number]>(sql`SELECT COUNT(*) FROM contact_methods`)
+    if (!seededMethods || Number(seededMethods[0]) === 0) {
+      db.run(sql`INSERT INTO contact_methods (label, created_at) VALUES ('LINE', 0), ('IG', 0), ('FB', 0)`)
+    }
     singleton = db
   }
   return singleton

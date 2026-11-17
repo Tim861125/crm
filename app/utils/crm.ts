@@ -33,6 +33,14 @@ export interface ContactLocation {
   createdAt: number
 }
 
+// 名單聯絡方式選項（對應 contact_methods 表；如 LINE／IG／FB）
+export interface ContactMethod {
+  id: number
+  userId: number | null
+  label: string
+  createdAt: number
+}
+
 // 進度階段型別（對應後端 contact_stages 表）
 export interface ContactStage {
   id: number

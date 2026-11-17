@@ -100,13 +100,13 @@ await sleep(500)
 
 // 兩個管理 dialog（只測「新增」輸入框：列表 rename 會即時寫 DB，跳過）
 await probePage('階段管理 dialog（新增框）', async () => {
-  await page.click('button[title="點擊管理進度階段"]')
+  await page.click('button[title="管理進度階段"]')
   await sleep(800)
 })
 await page.keyboard.press('Escape')
 await sleep(400)
-await probePage('地點管理 dialog（新增框）', async () => {
-  await page.click('button[title="點擊管理地點選項"]')
+await probePage('地點編輯下拉（新增列）', async () => {
+  await page.click('button[title="點擊編輯地點"]')
   await sleep(800)
 })
 await page.keyboard.press('Escape')

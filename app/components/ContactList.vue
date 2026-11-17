@@ -21,6 +21,7 @@ const { flash } = useNotice()
 const { data: contacts, status: contactsStatus, error: contactsError, refresh: refreshContacts } = useFetch('/api/contacts', { default: () => [] })
 const { data: stages, refresh: refreshStages } = useFetch('/api/contact-stages', { default: () => [] })
 const { data: locations, refresh: refreshLocations } = useFetch('/api/contact-locations', { default: () => [] })
+const { data: methods, refresh: refreshMethods } = useFetch('/api/contact-methods', { default: () => [] })
 
 // ── 搜尋與排序 ───────────────────────────────────────────────
 const search = ref('')
@@ -31,6 +32,52 @@ const visible = computed(() => searchAndSortContacts(contacts.value || [], searc
 // 地點欄編輯建議（RCombobox 以文字為值，同原生 datalist）
 const locationLabels = computed(() => (locations.value ?? []).map(l => l.label))
 
+// 下拉內直接增刪地點選項（原「地點欄標題管理 dialog」的替代品）
+async function createLocation(c: Contact, label: string) {
+  try {
+    await api('/api/contact-locations', { method: 'POST', body: { label } })
+    await refreshLocations()
+    commitEdit(c, 'location') // 建立的同時就地把這位存入並結束編輯
+  } catch (err: unknown) {
+    flash(`新增地點失敗：${(err as Error)?.message}`, { error: true })
+  }
+}
+
+async function deleteLocation(label: string) {
+  const hit = (locations.value ?? []).find((l: ContactLocation) => l.label === label)
+  if (!hit) return
+  try {
+    await api(`/api/contact-locations/${hit.id}`, { method: 'DELETE' })
+    await refreshLocations()
+  } catch (err: unknown) {
+    flash(`刪除地點失敗：${(err as Error)?.message}`, { error: true })
+  }
+}
+
+// 聯絡方式欄（同地點模式：下拉內「＋ 新增」建檔即選取、選項右緣 × 刪除）
+const methodLabels = computed(() => (methods.value ?? []).map((m: ContactMethod) => m.label))
+
+async function createMethod(c: Contact, label: string) {
+  try {
+    await api('/api/contact-methods', { method: 'POST', body: { label } })
+    await refreshMethods()
+    commitEdit(c, 'contact') // 建立的同時就地把這位存入並結束編輯
+  } catch (err: unknown) {
+    flash(`新增聯絡方式失敗：${(err as Error)?.message}`, { error: true })
+  }
+}
+
+async function deleteMethod(label: string) {
+  const hit = (methods.value ?? []).find((m: ContactMethod) => m.label === label)
+  if (!hit) return
+  try {
+    await api(`/api/contact-methods/${hit.id}`, { method: 'DELETE' })
+    await refreshMethods()
+  } catch (err: unknown) {
+    flash(`刪除聯絡方式失敗：${(err as Error)?.message}`, { error: true })
+  }
+}
+
 const stats = computed(() => {
   const list = contacts.value ?? []
   return {
@@ -39,10 +86,9 @@ const stats = computed(() => {
   }
 })
 
-// ── 明細 modal / 各管理 dialog ───────────────────────────────
+// ── 明細 modal／進度階段管理 dialog（地點增刪已改為下拉內直接處理）──
 const detailContact = ref<Contact | null>(null)
 const stagesOpen = ref(false)
-const locationsOpen = ref(false)
 
 // ── patch 工具：樂觀更新 + 失敗回滾 ──────────────────────────
 // 注意：useFetch 預設 shallow，就地改 items（contacts.value[i] = x）不會觸發畫面更新
@@ -181,7 +227,7 @@ function onEditKeydown(e: KeyboardEvent) {
         <!-- 欄寬固定在 colgroup（搭配 table-layout: fixed）：
              編輯切換（按鈕↔輸入框）不再觸發整表重排 -->
         <colgroup>
-          <col style="width: 130px">
+          <col style="width: 170px"><!-- 姓名＋SR/SSR 標籤並排：4 字姓名(≒72)＋標籤(≒54)＋間距＋padding 24 ≒ 156 -->
           <col><!-- 進度：吃掉剩餘寬度 -->
           <col style="width: 110px">
           <col style="width: 160px">
@@ -193,27 +239,37 @@ function onEditKeydown(e: KeyboardEvent) {
           <tr>
             <th>姓名</th>
             <th>
-              <button
-                type="button"
-                class="th-filter"
-                title="點擊管理進度階段"
-                aria-haspopup="dialog"
-                @click="stagesOpen = true"
-              >
+              <span class="th-manage">
                 進度
-              </button>
+                <button
+                  type="button"
+                  class="th-gear"
+                  aria-haspopup="dialog"
+                  aria-label="管理進度階段"
+                  title="管理進度階段"
+                  @click="stagesOpen = true"
+                >
+                  <!-- 手繪感齒輪（比照 RSelect 箭頭的純描線風格） -->
+                  <svg
+                    viewBox="0 0 24 24"
+                    fill="none"
+                    stroke="currentColor"
+                    stroke-width="2"
+                    stroke-linecap="round"
+                    stroke-linejoin="round"
+                    aria-hidden="true"
+                  >
+                    <path d="M12.22 2h-.44a2 2 0 0 0-2 2v.18a2 2 0 0 1-1 1.73l-.43.25a2 2 0 0 1-2 0l-.15-.08a2 2 0 0 0-2.73.73l-.22.38a2 2 0 0 0 .73 2.73l.15.1a2 2 0 0 1 1 1.72v.51a2 2 0 0 1-1 1.74l-.15.09a2 2 0 0 0-.73 2.73l.22.38a2 2 0 0 0 2.73.73l.15-.08a2 2 0 0 1 2 0l.43.25a2 2 0 0 1 1 1.73V20a2 2 0 0 0 2 2h.44a2 2 0 0 0 2-2v-.18a2 2 0 0 1 1-1.73l.43-.25a2 2 0 0 1 2 0l.15.08a2 2 0 0 0 2.73-.73l.22-.39a2 2 0 0 0-.73-2.73l-.15-.08a2 2 0 0 1-1-1.74v-.5a2 2 0 0 1 1-1.74l.15-.09a2 2 0 0 0 .73-2.73l-.22-.38a2 2 0 0 0-2.73-.73l-.15.08a2 2 0 0 1-2 0l-.43-.25a2 2 0 0 1-1-1.73V4a2 2 0 0 0-2-2z" />
+                    <circle
+                      cx="12"
+                      cy="12"
+                      r="3"
+                    />
+                  </svg>
+                </button>
+              </span>
             </th>
-            <th>
-              <button
-                type="button"
-                class="th-filter"
-                title="點擊管理地點選項"
-                aria-haspopup="dialog"
-                @click="locationsOpen = true"
-              >
-                地點
-              </button>
-            </th>
+            <th>地點</th>
             <th>聯絡</th>
             <th>跟進</th>
             <th :aria-sort="sortByNext ? 'descending' : undefined">
@@ -255,22 +311,24 @@ function onEditKeydown(e: KeyboardEvent) {
                 >
               </template>
               <template v-else>
-                <button
-                  type="button"
-                  class="cell-edit"
-                  :data-edit-target="`name-${c.id}`"
-                  :aria-label="`編輯姓名「${c.name}」`"
-                  title="點擊編輯姓名"
-                  @click="startEdit(c, 'name')"
-                >
-                  {{ c.name }}
-                </button>
-                <RBadge
-                  v-if="c.level"
-                  tone="gray"
-                >
-                  {{ c.level }}
-                </RBadge>
+                <span class="cell-name">
+                  <button
+                    type="button"
+                    class="cell-edit"
+                    :data-edit-target="`name-${c.id}`"
+                    :aria-label="`編輯姓名「${c.name}」`"
+                    title="點擊編輯姓名"
+                    @click="startEdit(c, 'name')"
+                  >
+                    {{ c.name }}
+                  </button>
+                  <RBadge
+                    v-if="c.level"
+                    tone="gray"
+                  >
+                    {{ c.level }}
+                  </RBadge>
+                </span>
               </template>
             </td>
 
@@ -306,7 +364,12 @@ function onEditKeydown(e: KeyboardEvent) {
                   class="cell-input"
                   :data-edit="`location-${c.id}`"
                   aria-label="編輯地點"
-                  empty-text="沒有符合的地點，可直接輸入"
+                  empty-text="沒有符合的地點，輸入後可選下方新增"
+                  creatable
+                  deletable
+                  create-label="新增地點（先輸入名稱）"
+                  @create="label => createLocation(c, label)"
+                  @delete="deleteLocation"
                   @blur="commitEdit(c, 'location')"
                   @keydown="onEditKeydown"
                 />
@@ -328,14 +391,21 @@ function onEditKeydown(e: KeyboardEvent) {
             <!-- 聯絡方式 -->
             <td>
               <template v-if="editingKey === `contact-${c.id}`">
-                <input
+                <RCombobox
                   v-model="editingValue"
+                  :options="methodLabels"
                   class="cell-input cell-input--wide"
                   :data-edit="`contact-${c.id}`"
                   aria-label="編輯聯絡方式"
+                  empty-text="沒有符合的聯絡方式，輸入後可選下方新增"
+                  creatable
+                  deletable
+                  create-label="新增聯絡方式（先輸入名稱）"
+                  @create="label => createMethod(c, label)"
+                  @delete="deleteMethod"
                   @blur="commitEdit(c, 'contact')"
                   @keydown="onEditKeydown"
-                >
+                />
               </template>
               <template v-else>
                 <button
@@ -445,17 +515,11 @@ function onEditKeydown(e: KeyboardEvent) {
       @refresh="refreshContacts"
     />
 
-    <!-- 管理 dialog：階段／地點由欄位標題開啟；
+    <!-- 管理 dialog：進度階段由欄位標題開啟（地點改在編輯下拉內增刪）；
          refresh 事件驅動名單頁刷新（見 ContactOptionsModal 檔內說明） -->
     <ContactOptionsModal
       v-model:open="stagesOpen"
-      mode="stages"
       @refresh="refreshStages"
-    />
-    <ContactOptionsModal
-      v-model:open="locationsOpen"
-      mode="locations"
-      @refresh="refreshLocations"
     />
   </div>
 </template>

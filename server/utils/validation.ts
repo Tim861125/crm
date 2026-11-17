@@ -74,6 +74,13 @@ export const contactLocationPatchSchema = z.object({
 
 export type ContactLocationPatch = z.infer<typeof contactLocationPatchSchema>
 
+// 名單聯絡方式選項（如 LINE／IG／FB）
+export const contactMethodInputSchema = z.object({
+  label: z.string().trim().min(1, '請輸入聯絡方式名稱')
+})
+
+export type ContactMethodInput = z.infer<typeof contactMethodInputSchema>
+
 // 各區塊 & 等級允許值（每日任務 prospects 用）
 export const PROSPECT_SECTIONS = ['develop', 'reserve', 'five', 'network'] as const
 

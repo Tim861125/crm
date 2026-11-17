@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import RBadge from '../components/rough/RBadge.vue'
 import RButton from '../components/rough/RButton.vue'
+import RCombobox from '../components/rough/RCombobox.vue'
 import RDialog from '../components/rough/RDialog.vue'
 import RInput from '../components/rough/RInput.vue'
 import RSelect from '../components/rough/RSelect.vue'
@@ -45,8 +46,9 @@ const form = ref<Record<string, string>>({})
 
 // reka Select 禁止空字串 item value（會被當成「未選/placeholder」而 throw，commit 9f8c665）。
 // 可清空的下拉一律以哨兵代空值（開啟時 null → NONE、存檔時 NONE → null）。
+// 位置欄走 RCombobox（自由文字，空字串＝未設定），不需要哨兵。
 const NONE = '__none__'
-const SELECT_FIELDS = new Set(['location', 'level', 'followUpFreq'])
+const SELECT_FIELDS = new Set(['level', 'followUpFreq'])
 const withNone = (items: { label: string, value: string }[]) => [{ label: '－', value: NONE }, ...items]
 
 // 未儲存變更偵測：關閉（Esc／背景／關閉鈕）前提示，避免誤丟編輯
@@ -114,8 +116,9 @@ watch(open, (o) => {
   if (o) {
     refreshLogs()
     // 同 key useFetch 不跨元件同步：開明細時重抓選項清單，
-    // 才看得到剛在「管理地點選項」dialog 新增的項目
+    // 才看得到在名單頁編輯下拉裡剛新增的地點／聯絡方式
     refreshLocations()
+    refreshMethods()
   }
 })
 
@@ -153,9 +156,52 @@ async function removeLog(log: FollowUpLog) {
 // 選項清單
 const { data: locations, refresh: refreshLocations } = useFetch('/api/contact-locations', { default: () => [] })
 
-const locationItems = computed(() =>
-  locations.value.map(l => ({ label: l.label, value: l.label }))
-)
+const locationLabels = computed(() => (locations.value ?? []).map((l: ContactLocation) => l.label))
+
+// 位置欄增刪（名單頁與明細行為一致：下拉內「＋ 新增」／選項右緣 ×）
+async function createLocation(label: string) {
+  try {
+    await api('/api/contact-locations', { method: 'POST', body: { label } })
+    await refreshLocations()
+  } catch (err: unknown) {
+    flash(`新增地點失敗：${(err as Error)?.message}`, { error: true })
+  }
+}
+
+async function deleteLocation(label: string) {
+  const hit = (locations.value ?? []).find((l: ContactLocation) => l.label === label)
+  if (!hit) return
+  try {
+    await api(`/api/contact-locations/${hit.id}`, { method: 'DELETE' })
+    await refreshLocations()
+  } catch (err: unknown) {
+    flash(`刪除地點失敗：${(err as Error)?.message}`, { error: true })
+  }
+}
+
+// 聯絡方式欄選項（同地點模式：「＋ 新增」建檔＋選項右緣 × 刪除）
+const { data: methods, refresh: refreshMethods } = useFetch('/api/contact-methods', { default: () => [] })
+const methodLabels = computed(() => (methods.value ?? []).map((m: ContactMethod) => m.label))
+
+async function createMethod(label: string) {
+  try {
+    await api('/api/contact-methods', { method: 'POST', body: { label } })
+    await refreshMethods()
+  } catch (err: unknown) {
+    flash(`新增聯絡方式失敗：${(err as Error)?.message}`, { error: true })
+  }
+}
+
+async function deleteMethod(label: string) {
+  const hit = (methods.value ?? []).find((m: ContactMethod) => m.label === label)
+  if (!hit) return
+  try {
+    await api(`/api/contact-methods/${hit.id}`, { method: 'DELETE' })
+    await refreshMethods()
+  } catch (err: unknown) {
+    flash(`刪除聯絡方式失敗：${(err as Error)?.message}`, { error: true })
+  }
+}
 
 const freqItems = FOLLOW_UP_FREQ_OPTIONS.map(v => ({ label: v, value: v }))
 const levelItems = LEVEL_OPTIONS.map(v => ({ label: v, value: v }))
@@ -174,15 +220,34 @@ const levelItems = LEVEL_OPTIONS.map(v => ({ label: v, value: v }))
       <div class="detail-form">
         <label>
           <span>位置</span>
-          <RSelect
+          <RCombobox
             v-model="form.location"
-            :options="withNone(locationItems)"
+            :options="locationLabels"
+            empty-text="沒有符合的地點"
+            creatable
+            deletable
+            create-label="新增地點（先輸入名稱）"
+            placeholder="地點…"
+            aria-label="編輯位置"
+            @create="createLocation"
+            @delete="deleteLocation"
           />
         </label>
 
         <label>
           <span>聯絡方式</span>
-          <RInput v-model="form.contact" />
+          <RCombobox
+            v-model="form.contact"
+            :options="methodLabels"
+            empty-text="沒有符合的聯絡方式"
+            creatable
+            deletable
+            create-label="新增聯絡方式（先輸入名稱）"
+            placeholder="聯絡方式…"
+            aria-label="編輯聯絡方式"
+            @create="createMethod"
+            @delete="deleteMethod"
+          />
         </label>
 
         <label>

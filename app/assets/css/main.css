@@ -115,6 +115,14 @@ button:disabled { cursor: not-allowed; opacity: .55; }
 .r-pop-menu__check { position: absolute; left: 10px; display: flex; color: var(--accent-strong); }
 .r-pop-menu__check svg { display: block; width: 13px; height: 13px; }
 .r-pop-menu__empty { padding: 9px 12px; color: var(--muted); font-size: .9rem; }
+/* creatable combobox 的「＋ 新增」列：加號佔勾勾位，未可按時（空白／已存在）走 disabled 灰 */
+.r-pop-menu__plus { position: absolute; left: 9px; display: flex; color: var(--accent-strong); font-weight: 700; }
+.r-pop-menu__item--create { color: var(--accent-strong); }
+.r-pop-menu__item--create[data-disabled] { color: var(--muted); cursor: default; }
+.r-pop-menu__item--create[data-disabled] .r-pop-menu__plus { color: var(--muted); }
+/* deletable combobox 選項右緣的 ×：安靜小圓鈕，hover／focus 才染 danger 紅 */
+.r-pop-menu__x { display: flex; flex: none; align-items: center; justify-content: center; width: 26px; height: 26px; margin-left: auto; border: 0; border-radius: 50%; background: transparent; color: var(--muted); font: inherit; font-size: 1.05rem; line-height: 1; cursor: pointer; }
+.r-pop-menu__x:hover, .r-pop-menu__x:focus-visible { color: var(--danger-deep); background: rgb(var(--ink-rgb) / 8%); }
 /* 收合瞬間 reka 會把選取項 clone 進 trigger：clone 帶著勾勾過來，藏掉免得到處飄 */
 .r-select .r-pop-menu__check { display: none; }
 .r-choice { display: inline-flex; align-items: center; gap: 8px; min-height: 36px; cursor: pointer; }
@@ -166,7 +174,7 @@ button:disabled { cursor: not-allowed; opacity: .55; }
 .skip-link:focus { top: 8px; }
 .sr-only { position: absolute; width: 1px; height: 1px; margin: -1px; padding: 0; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; border: 0; }
 .site-header { border-bottom: 1px solid rgb(var(--ink-rgb) / 16%); }
-.site-header__inner { max-width: 1120px; min-height: 72px; margin: 0 auto; padding: 10px 24px; display: flex; align-items: center; justify-content: space-between; gap: 20px; }
+.site-header__inner { max-width: 1160px; min-height: 72px; margin: 0 auto; padding: 10px 24px; display: flex; align-items: center; justify-content: space-between; gap: 20px; }
 /* 品牌連結的樣式改由 app.vue 的 utility 類承載（text-accent text-[1.25rem] font-bold no-underline whitespace-nowrap），
    .site-brand 只留作語意錨點與測試抓手。text-xl 會連 line-height 一起帶入，故用 text-[1.25rem] 只改字級。 */
 .site-nav { display: flex; align-items: center; gap: 6px; }
@@ -176,7 +184,8 @@ button:disabled { cursor: not-allowed; opacity: .55; }
 /* 亮／暗切換鈕（ThemeToggle.vue）：比對側導覽文字的 44px 命中區 */
 .theme-toggle { display: inline-flex; align-items: center; justify-content: center; width: 40px; height: 40px; margin-left: 6px; border: 0; border-radius: 10px; background: transparent; color: var(--muted); transition: color .15s ease, background-color .15s ease; }
 .theme-toggle:hover { color: var(--accent-strong); background: rgb(var(--ink-rgb) / 6%); }
-.page-content { max-width: 1120px; margin: 0 auto; padding: 36px 24px; }
+/* max-width 1160＝名單表 min-width 1102＋padding 48：總名單在桌面寬度不出現橫向滾輪 */
+.page-content { max-width: 1160px; margin: 0 auto; padding: 36px 24px; }
 .page-heading { display: flex; align-items: center; justify-content: space-between; gap: 12px; flex-wrap: wrap; }
 /* 同一頁多區塊時第二區塊用 h2，維持標題層級但視覺同規模 */
 .page-heading h1, .page-heading .page-heading__sub { margin: 0; font-size: clamp(1.8rem, 6vw, 2.7rem); }
@@ -217,7 +226,7 @@ button:disabled { cursor: not-allowed; opacity: .55; }
 .site-toast span.is-error { background: var(--red); color: var(--danger-deep); }
 
 /* 互動回饋 */
-.site-nav a, .cell-edit, .link-button, .th-filter, .row-step, .chip-remove { transition: color .15s ease; }
+.site-nav a, .cell-edit, .link-button, .th-filter, .th-gear, .row-step { transition: color .15s ease; }
 
 @keyframes fade-in { from { opacity: 0; } }
 @keyframes rise-in { from { opacity: 0; transform: translateY(6px); } }
@@ -251,9 +260,9 @@ button:disabled { cursor: not-allowed; opacity: .55; }
 .list-scroll { overflow-x: auto; }
 /* 固定欄寬防跑版：inline 編輯把按鈕換成輸入框時，auto 佈局會整表重排；
    table-layout: fixed 讓欄寬只認 colgroup（見 ContactList.vue）。
-   min-width＝各固定欄總和(862)＋進度欄下限(200)：低於總寬時整表橫滾，
+   min-width＝各固定欄總和(902)＋進度欄下限(200)：低於總寬時整表橫滾，
    不可只設固定欄總和 —— 那會把 auto 的進度欄壓成 0px，表頭按鈕溢出壓到相鄰欄（誤點來源） */
-.list-scroll .r-table { min-width: 1062px; table-layout: fixed; }
+.list-scroll .r-table { min-width: 1102px; table-layout: fixed; }
 /* 表頭永不折行：固定欄寬下若欄不夠寬，中文會逐字換行變直排（如「跟進」） */
 .list-scroll .r-table th { white-space: nowrap; }
 .list-scroll .r-table td { vertical-align: top; overflow-wrap: anywhere; }
@@ -262,11 +271,20 @@ button:disabled { cursor: not-allowed; opacity: .55; }
 .th-filter { border: 0; background: transparent; font: inherit; font-weight: 700; padding: 2px 7px; }
 .th-filter:hover { color: var(--accent-strong); }
 .th-filter.is-active { background: var(--accent-soft); }
+/* 欄頭管理齒輪（進度）：文字保持純文字，齒輪是唯一入口 */
+.th-manage { display: inline-flex; align-items: center; gap: 3px; }
+.th-gear { display: inline-flex; align-items: center; justify-content: center; padding: 4px; border: 0; border-radius: 6px; background: transparent; color: var(--muted); cursor: pointer; }
+.th-gear svg { display: block; width: 15px; height: 15px; }
+.th-gear:hover, .th-gear:focus-visible { color: var(--accent-strong); background: rgb(var(--ink-rgb) / 6%); }
 .sort-arrow { font-size: .95rem; }
 .sort-arrow.is-off { color: rgb(var(--ink-rgb) / 30%); }
 .stage-chip { padding: 2px 10px; border: 0; border-radius: 999px; background: var(--chip); color: var(--muted); font-size: .9rem; margin: 2px 5px 2px 0; }
 .stage-chip.is-done { background: var(--accent-soft); color: var(--ink); font-weight: 700; }
-.list-scroll .r-badge { margin-left: 6px; }
+/* 姓名欄：姓名與等級標籤（SR/SSR）並排同一行，靠 flex nowrap 防標籤折到第二行；
+   極長姓名在按鈕內折行，標籤仍貼著首行右側（.r-badge 的 margin-left 於 flex 中作間距） */
+.cell-name { display: flex; align-items: baseline; flex-wrap: nowrap; min-width: 0; }
+.cell-name .cell-edit { min-width: 0; overflow-wrap: anywhere; }
+.list-scroll .r-badge { margin-left: 6px; white-space: nowrap; flex: none; }
 .empty-cell { padding: 40px 16px !important; text-align: center; color: var(--muted); }
 
 /* ── 每日任務頁：今日跟進清單 ───────────────────────────────── */
@@ -293,6 +311,9 @@ button:disabled { cursor: not-allowed; opacity: .55; }
 .detail-form label > span:first-child { color: var(--muted); }
 .detail-form .span-2 { grid-column: 1 / -1; }
 .detail-form textarea { width: 100%; padding: 9px 12px; border: 1.5px solid rgb(var(--ink-rgb) / 40%); border-radius: 6px; background: transparent; resize: vertical; }
+/* 位置欄的 RCombobox：外貌靠齊同表单的 RInput／textarea（名单页则是靠 .cell-input 供框） */
+.detail-form .r-combo__anchor { min-width: 0; }
+.detail-form .r-combo { display: block; width: 100%; min-height: 46px; padding: 9px 12px; border: 1.5px solid rgb(var(--ink-rgb) / 40%); border-radius: 6px; background: transparent; }
 .detail-actions { text-align: center; margin-top: 18px; }
 .logs-head { font-size: 1.15rem; margin: 24px 0 12px; }
 .log-form { display: flex; align-items: flex-end; gap: 10px; flex-wrap: wrap; margin-bottom: 14px; }
@@ -312,10 +333,6 @@ button:disabled { cursor: not-allowed; opacity: .55; }
 .stage-row { display: flex; align-items: center; gap: 8px; }
 .stage-row .r-input__frame { flex: 1; min-width: 0; }
 .stage-index { min-width: 34px; text-align: center; }
-.option-chips { display: flex; flex-wrap: wrap; gap: 10px; }
-.option-chip { display: inline-flex; align-items: center; gap: 8px; padding: 4px 12px; border-radius: 999px; background: var(--accent-soft); }
-.chip-remove { border: 0; background: transparent; color: var(--muted); font-size: 1.05rem; line-height: 1; padding: 0; }
-.chip-remove:hover { color: var(--danger-deep); }
 
 @media (max-width: 640px) {
   .page-content { padding: 24px 16px; }
@@ -325,7 +342,9 @@ button:disabled { cursor: not-allowed; opacity: .55; }
 
 /* 觸控裝置：小型文字動作鈕擴大到 44×44 命中區（Apple HIG），视觉尺寸不变靠 padding */
 @media (pointer: coarse) {
-  .row-step, .chip-remove { display: inline-flex; align-items: center; justify-content: center; min-width: 44px; min-height: 44px; }
+  .row-step { display: inline-flex; align-items: center; justify-content: center; min-width: 44px; min-height: 44px; }
   .cell-edit, .link-button, .show-more-button, .th-filter { min-height: 44px; }
+  .th-gear { min-width: 36px; min-height: 36px; }
   .r-pop-menu__item { min-height: 44px; }
+  .r-pop-menu__x { min-width: 36px; min-height: 36px; }
 }

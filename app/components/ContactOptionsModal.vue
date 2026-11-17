@@ -4,16 +4,11 @@ import RButton from '../components/rough/RButton.vue'
 import RDialog from '../components/rough/RDialog.vue'
 import RInput from '../components/rough/RInput.vue'
 import { api } from '../utils/crm'
-// 選項管理 dialog（單頁模式）：mode 決定內容 —
-// stages＝進度階段（新增／改名／排序／刪除）；locations＝地點選項
+// 進度階段管理 dialog：新增／改名／排序／刪除。
+// （地點選項已改在 RCombobox 編輯下拉內直接增刪，見 ContactList.vue）
 const open = defineModel<boolean>('open', { default: false })
-const props = defineProps<{ mode: 'stages' | 'locations' }>()
 
-const titles = {
-  stages: '管理進度階段',
-  locations: '管理地點選項'
-} as const
-const title = computed(() => titles[props.mode])
+const title = '管理進度階段'
 
 const { flash } = useNotice()
 
@@ -28,12 +23,9 @@ async function afterMutation(refresh: () => Promise<unknown>) {
   emit('refresh')
 }
 const { data: stages, refresh: refreshStages } = useFetch('/api/contact-stages', { default: () => [] })
-const { data: locations, refresh: refreshLocations } = useFetch('/api/contact-locations', { default: () => [] })
 
 watch(open, (v) => {
-  if (!v) return
-  if (props.mode === 'stages') refreshStages()
-  else refreshLocations()
+  if (v) refreshStages()
 })
 
 // ── 進度階段 ─────────────────────────────────────────────────
@@ -95,30 +87,6 @@ async function removeStage(stage: ContactStage) {
     flash(`刪除階段失敗：${(err as Error)?.message}`, { error: true })
   }
 }
-
-// ── 地點選項 ─────────────────────────────────────────────────
-const newLocation = ref('')
-
-async function addLocation() {
-  const label = newLocation.value.trim()
-  if (!label) return
-  try {
-    await api('/api/contact-locations', { method: 'POST', body: { label } })
-    newLocation.value = ''
-    await afterMutation(refreshLocations)
-  } catch (err: unknown) {
-    flash(`新增地點失敗：${(err as Error)?.message}`, { error: true })
-  }
-}
-
-async function removeLocation(location: ContactLocation) {
-  try {
-    await api(`/api/contact-locations/${location.id}`, { method: 'DELETE' })
-    await afterMutation(refreshLocations)
-  } catch (err: unknown) {
-    flash(`刪除地點失敗：${(err as Error)?.message}`, { error: true })
-  }
-}
 </script>
 
 <template>
@@ -129,7 +97,6 @@ async function removeLocation(location: ContactLocation) {
   >
     <!-- 進度階段 -->
     <div
-      v-if="props.mode === 'stages'"
       class="tab-panel"
       role="group"
       :aria-label="title"
@@ -211,56 +178,6 @@ async function removeLocation(location: ContactLocation) {
           還沒有階段，加個「2」「加入」之類的名稱試試 ✏️
         </li>
       </ul>
-    </div>
-
-    <!-- 地點選項 -->
-    <div
-      v-if="props.mode === 'locations'"
-      class="tab-panel"
-      role="group"
-      :aria-label="title"
-      tabindex="0"
-    >
-      <form
-        class="inline-form"
-        @submit.prevent="addLocation"
-      >
-        <div class="grow-input">
-          <RInput
-            v-model="newLocation"
-            aria-label="新的地點"
-            placeholder="新的地點…"
-            @keydown.enter.prevent="addLocation"
-          />
-        </div>
-        <RButton
-          variant="primary"
-          type="submit"
-        >
-          新增
-        </RButton>
-      </form>
-
-      <div class="option-chips">
-        <span
-          v-for="l in locations"
-          :key="l.id"
-          class="option-chip"
-        >
-          {{ l.label }}
-          <button
-            type="button"
-            class="chip-remove"
-            title="刪除"
-            :aria-label="`刪除地點「${l.label}」`"
-            @click="removeLocation(l)"
-          >×</button>
-        </span>
-        <span
-          v-if="!locations?.length"
-          class="muted-note"
-        >還沒有地點選項</span>
-      </div>
     </div>
   </RDialog>
 </template>
