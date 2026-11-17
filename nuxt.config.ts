@@ -13,7 +13,17 @@ export default defineNuxtConfig({
 
   app: {
     pageTransition: { name: 'page', mode: 'out-in' },
-    layoutTransition: { name: 'layout', mode: 'out-in' }
+    layoutTransition: { name: 'layout', mode: 'out-in' },
+    head: {
+      // 手繪字體預載：@font-face 要等 CSS 解析完才排上下載，preload 讓兩個字重
+      // 與 HTML 並行下載，縮短進畫面時備援字體閃成手繪字體（FOUT）的空窗。
+      // 字檔由 `bun run fonts:build` 切片（見 scripts/build-fonts.ts）；
+      // crossorigin 必要，否則瀏覽器視為不同資源會重複下載。
+      link: [
+        { rel: 'preload', as: 'font', type: 'font/woff2', crossorigin: 'anonymous', href: '/fonts/NaikaiFont-Regular-Lite.woff2' },
+        { rel: 'preload', as: 'font', type: 'font/woff2', crossorigin: 'anonymous', href: '/fonts/NaikaiFont-Bold-Lite.woff2' }
+      ]
+    }
   },
 
   // main.css 先、tailwind.css 最後：兩者皆未分層 CSS，同權重時後來者勝，

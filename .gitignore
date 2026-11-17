@@ -14,3 +14,5 @@ headroom.log
 worker-configuration.d.ts
 # wrangler types 可能在 types 目錄留下空目錄，一併排除
 worker-configuration.d.ts/
+# fonts:build 从 git 取回的官方母檔快取
+scripts/.font-cache/

@@ -1,3 +1,7 @@
+/* 手繪字體：官方 tw/ 全字表經 `bun run fonts:build` 切片（UI 文案＋常用字＋本地資料用字，
+   見 scripts/build-fonts.ts），nuxt.config.ts 另加 preload 提前下載。
+   font-display 維持 swap：宁可先看到備援字體，也不要空白字（FOIT）；
+   缺字（罕見姓名用字）會逐字退回 sans-serif，不断行不空白。 */
 @font-face {
   font-family: 'NaikaiFont';
   src: url('/fonts/NaikaiFont-Regular-Lite.woff2') format('woff2');

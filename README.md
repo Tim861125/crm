@@ -40,7 +40,7 @@
 | Runtime / 包裝管理 | [Bun](https://bun.sh)（`bun --bun nuxt dev`） |
 | 框架 | [Nuxt 4](https://nuxt.com)（Nitro，`cloudflare_module` preset） |
 | UI | [reka-ui](https://reka-ui.com) 無障礙原語 ＋ 自製手繪元件套件套外觀（`app/components/rough/`） |
-| 樣式 | Tailwind CSS v4（只供新寫樣式）＋ 手繪樣式 `app/assets/css/main.css`；NaikaiFont 字體、rough.js 手繪邊框 |
+| 樣式 | Tailwind CSS v4（只供新寫樣式）＋ 手繪樣式 `app/assets/css/main.css`；NaikaiFont 手繪字體（`bun run fonts:build` 切片，只留 UI 文案＋常用字，見 `scripts/build-fonts.ts`）、rough.js 手繪邊框 |
 | 資料庫 | Drizzle ORM + SQLite（本地）／ Cloudflare D1（部署），遷移由 drizzle-kit 管理 |
 | 驗證 | Zod（`server/utils/validation.ts`），驗證錯誤回 400 |
 | 測試 | Vitest ＋ `@nuxt/test-utils`（純函式單元測試＋全 API e2e） |
