@@ -9,9 +9,7 @@ import {
   api,
   FOLLOW_UP_FREQ_SHORT,
   isOverdue,
-  overdueDays,
   searchAndSortContacts,
-  timeAgo,
   type Contact
 } from '../utils/crm'
 
@@ -23,11 +21,10 @@ const { data: stages, refresh: refreshStages } = useFetch('/api/contact-stages',
 const { data: locations, refresh: refreshLocations } = useFetch('/api/contact-locations', { default: () => [] })
 const { data: methods, refresh: refreshMethods } = useFetch('/api/contact-methods', { default: () => [] })
 
-// ── 搜尋與排序 ───────────────────────────────────────────────
+// ── 搜尋 ─────────────────────────────────────────────────────
 const search = ref('')
-const sortByNext = ref(false)
 
-const visible = computed(() => searchAndSortContacts(contacts.value || [], search.value, sortByNext.value))
+const visible = computed(() => searchAndSortContacts(contacts.value || [], search.value, false))
 
 // 地點欄編輯建議（RCombobox 以文字為值，同原生 datalist）
 const locationLabels = computed(() => (locations.value ?? []).map(l => l.label))
@@ -115,13 +112,15 @@ async function patchContact(c: Contact, patch: Partial<Contact> & Record<string,
   }
 }
 
-// ── inline 編輯儲存格（姓名／聯絡方式／位置）──────────────────
+// ── inline 編輯儲存格（姓名／聯絡方式／地點／備註）─────────────
 const editingKey = ref<string | null>(null)
 const editingValue = ref('')
 
-function startEdit(c: Contact, field: 'name' | 'contact' | 'location') {
+type EditableField = 'name' | 'contact' | 'location' | 'note'
+
+function startEdit(c: Contact, field: EditableField) {
   editingKey.value = `${field}-${c.id}`
-  editingValue.value = field === 'name' ? c.name : field === 'contact' ? c.contact ?? '' : c.location ?? ''
+  editingValue.value = { name: c.name, contact: c.contact, location: c.location, note: c.note }[field] ?? ''
   // 進入編輯後聚焦輸入框（巨集按新增時直接打字；鍵盤操作不需再點一次）
   void nextTick(() => {
     const input = document.querySelector<HTMLInputElement>(`input.cell-input[data-edit="${editingKey.value}"]`)
@@ -130,7 +129,7 @@ function startEdit(c: Contact, field: 'name' | 'contact' | 'location') {
   })
 }
 
-function commitEdit(c: Contact, field: 'name' | 'contact' | 'location') {
+function commitEdit(c: Contact, field: EditableField) {
   editingKey.value = null
   let v = editingValue.value.trim()
   if (field === 'name' && !v) v = c.name // 姓名不可為空
@@ -231,8 +230,8 @@ function onEditKeydown(e: KeyboardEvent) {
           <col><!-- 進度：吃掉剩餘寬度 -->
           <col style="width: 110px">
           <col style="width: 160px">
+          <col style="width: 210px"><!-- 備註：長文字折行後以兩行截斷（見 .cell-note），完整內容放 title -->
           <col style="width: 72px"><!-- 跟進：17px 中文字兩字＋padding 24 ≒ 58，低於 58 時「跟進」會逐字換行變直排 -->
-          <col style="width: 210px">
           <col style="width: 180px"><!-- 動作：两颗 RButton（74×2）＋ td padding 24 ＝ 172，少于此删除钮会被 .list-scroll 裁右缘 -->
         </colgroup>
         <thead>
@@ -271,24 +270,8 @@ function onEditKeydown(e: KeyboardEvent) {
             </th>
             <th>地點</th>
             <th>聯絡</th>
+            <th>備註</th>
             <th>跟進</th>
-            <th :aria-sort="sortByNext ? 'descending' : undefined">
-              <button
-                type="button"
-                class="th-filter"
-                :class="{ 'is-active': sortByNext }"
-                :aria-pressed="sortByNext"
-                aria-label="依下次跟進日排序"
-                title="依下次跟進日排序"
-                @click="sortByNext = !sortByNext"
-              >
-                下次跟進 <span
-                  class="sort-arrow"
-                  :class="{ 'is-off': !sortByNext }"
-                  aria-hidden="true"
-                >↓</span>
-              </button>
-            </th>
             <th />
           </tr>
         </thead>
@@ -421,33 +404,37 @@ function onEditKeydown(e: KeyboardEvent) {
               </template>
             </td>
 
+            <!-- 備註 -->
+            <td>
+              <template v-if="editingKey === `note-${c.id}`">
+                <input
+                  v-model="editingValue"
+                  class="cell-input"
+                  :data-edit="`note-${c.id}`"
+                  aria-label="編輯備註"
+                  @blur="commitEdit(c, 'note')"
+                  @keydown="onEditKeydown"
+                >
+              </template>
+              <template v-else>
+                <span class="cell-note">
+                  <button
+                    type="button"
+                    class="cell-edit cell-edit--plain"
+                    :data-edit-target="`note-${c.id}`"
+                    :aria-label="`編輯「${c.name}」的備註：${c.note ?? '未填寫'}`"
+                    :title="c.note || '點擊編輯備註'"
+                    @click="startEdit(c, 'note')"
+                  >
+                    {{ c.note ?? '－' }}
+                  </button>
+                </span>
+              </template>
+            </td>
+
             <!-- 跟進頻率 -->
             <td>
               {{ c.followUpFreq ? FOLLOW_UP_FREQ_SHORT[c.followUpFreq] : '—' }}
-            </td>
-
-            <!-- 下次跟進 -->
-            <td style="white-space: nowrap">
-              <template v-if="c.nextFollowUp">
-                <span
-                  v-if="isOverdue(c.nextFollowUp)"
-                  class="marker-red"
-                >
-                  {{ c.nextFollowUp }}
-                </span>
-                <span v-else>{{ c.nextFollowUp }}</span>
-                <RBadge
-                  v-if="isOverdue(c.nextFollowUp)"
-                  tone="red"
-                >
-                  遲 {{ overdueDays(c.nextFollowUp) }}天
-                </RBadge>
-                <span
-                  v-else-if="timeAgo(c.nextFollowUp) === '今天'"
-                  class="muted-note"
-                >今天</span>
-              </template>
-              <span v-else>—</span>
             </td>
 
             <!-- 動作 -->
