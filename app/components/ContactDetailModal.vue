@@ -229,6 +229,7 @@ const levelItems = LEVEL_OPTIONS.map(v => ({ label: v, value: v }))
             create-label="新增地點（先輸入名稱）"
             placeholder="地點…"
             aria-label="編輯位置"
+            :open-on-focus="false"
             @create="createLocation"
             @delete="deleteLocation"
           />

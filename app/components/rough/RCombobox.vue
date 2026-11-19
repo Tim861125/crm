@@ -17,7 +17,9 @@ import { ComboboxAnchor, ComboboxContent, ComboboxEmpty, ComboboxInput, Combobox
 //   只 emit create，由父層負責落庫與刷新選項。空白或已完全比對時列呈灰色（reka 會略過 disabled 列）。
 // deletable：每個選項右緣掛 × 刪除鈕；按下只 emit delete，不會順道選取該項
 //   （click.stop 擋 option 列的 click 選取；mousedown 自己 prevent 保 focus、stop 免觸發 content 層防搶焦）。
-const props = withDefaults(defineProps<{ modelValue?: string | null, options: string[], placeholder?: string, emptyText?: string, id?: string, creatable?: boolean, deletable?: boolean, createLabel?: string }>(), { modelValue: null, emptyText: '沒有符合的選項', creatable: false, deletable: false, createLabel: '新增選項' })
+// openOnFocus 預設 true：inline 編輯由父層 focus() 啟動，一聚焦就出建議是該場景的意圖。
+//   但 dialog 開啟時 reka 會自動聚焦第一個可聚焦元素，那不是「開始編輯」→ 該場域關掉（見 ContactDetailModal）。
+const props = withDefaults(defineProps<{ modelValue?: string | null, options: string[], placeholder?: string, emptyText?: string, id?: string, creatable?: boolean, deletable?: boolean, createLabel?: string, openOnFocus?: boolean }>(), { modelValue: null, emptyText: '沒有符合的選項', creatable: false, deletable: false, createLabel: '新增選項', openOnFocus: true })
 const emit = defineEmits<{ 'update:modelValue': [value: string], 'create': [label: string], 'delete': [label: string] }>()
 // class／aria-label／@blur／@keydown 等要落在原生 input，不能留給外層 anchor div
 defineOptions({ inheritAttrs: false })
@@ -90,7 +92,7 @@ function onRootUpdate(value: AcceptableValue) {
     v-model:open="open"
     :model-value="term"
     ignore-filter
-    open-on-focus
+    :open-on-focus="props.openOnFocus"
     open-on-click
     highlight-on-hover
     :reset-search-term-on-blur="false"
