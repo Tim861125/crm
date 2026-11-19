@@ -150,7 +150,13 @@ button:disabled { cursor: not-allowed; opacity: .55; }
 .r-dialog > .rough-frame, .r-dialog > .rough-frame > .rough-frame__content { display: flex; flex-direction: column; min-height: 0; }
 /* dialog 本身不捲動，內容超出時在手繪框「內側」捲動，捲軸不壓到邊框 */
 .r-dialog__content { min-height: 0; margin: 4px; padding: 14px 16px 14px 18px; overflow-y: auto; overscroll-behavior: contain; scrollbar-width: thin; scrollbar-color: rgb(var(--ink-rgb) / 30%) transparent; }
-.r-dialog__content > h2 { margin: 0 0 12px; }
+/* 關閉鈕：右上角叉叉（取代原內容末端的「關閉」文字鈕）。錨在 .r-dialog（fixed 本身就是定位
+   參照）的手繪框線內側；放在捲動區之外，內容捲動時不動 */
+.r-dialog__close { position: absolute; top: 28px; right: 28px; z-index: 1; display: inline-flex; align-items: center; justify-content: center; width: 42px; height: 42px; padding: 0; border: 0; border-radius: 50%; background: transparent; color: var(--muted); transition: color .15s ease, background-color .15s ease; }
+.r-dialog__close svg { display: block; width: 20px; height: 20px; }
+.r-dialog__close:hover, .r-dialog__close:focus-visible { color: var(--danger-deep); background: rgb(var(--ink-rgb) / 8%); }
+/* 標題預留叉叉的寬度，長標題末字才不會藏到鈕底下 */
+.r-dialog__content > h2 { margin: 0 0 12px; padding-right: 46px; }
 /* 對話框內的捲動區：細捲軸、與手繪邊框保持距離，上下虛線提示可捲動 */
 .r-scroll { overflow-y: auto; overscroll-behavior: contain; scrollbar-width: thin; scrollbar-color: rgb(var(--ink-rgb) / 30%) transparent; scrollbar-gutter: stable; }
 /* Chrome 開 dialog 時會把焦點給可捲動區，不要一打開就出現粗橘框 */

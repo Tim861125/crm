@@ -1,6 +1,5 @@
 <script setup lang="ts">
 import { DialogContent, DialogOverlay, DialogPortal, DialogRoot, DialogTitle } from 'reka-ui'
-import RButton from './RButton.vue'
 
 // reka Dialog：焦點陷阱、Esc/背景 dismiss、捲動鎖、body 回填由 reka 負責；
 // 視覺照舊套手繪框（原生日 <dialog> 的 [open]/::backdrop 樣式改寫為 data-state + overlay）
@@ -45,14 +44,33 @@ function onDismiss(event: Event) {
           <div class="r-dialog__content">
             <DialogTitle v-if="title">
               {{ title }}
-            </DialogTitle><slot /><RButton
-              type="button"
-              @click="requestClose"
-            >
-              關閉
-            </RButton>
+            </DialogTitle>
+            <slot />
           </div>
         </RoughFrame>
+        <!-- 關閉鈕：右上角叉叉。RButton 的 class 會落到內層 <button>（inheritAttrs:false），
+             錨位無處可去，所以走原生 button＋自己的 class（比照 ThemeToggle）；
+             放 RoughFrame 之後＝DOM 末位，開啟時 reka 的初始焦點行為不變 -->
+        <button
+          type="button"
+          class="r-dialog__close"
+          title="關閉"
+          aria-label="關閉"
+          @click="requestClose"
+        >
+          <!-- 手繪感叉叉：兩筆微彎描線（非精對稱直線） -->
+          <svg
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="currentColor"
+            stroke-width="2"
+            stroke-linecap="round"
+            aria-hidden="true"
+          >
+            <path d="M5.9 6.1c3.6 4.1 8.4 8.2 12.3 12.2" />
+            <path d="M18.1 5.7c-3.9 4.3-8.3 8.3-12.4 12.6" />
+          </svg>
+        </button>
       </DialogContent>
     </DialogPortal>
   </DialogRoot>
