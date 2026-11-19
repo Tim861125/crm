@@ -157,6 +157,18 @@ button:disabled { cursor: not-allowed; opacity: .55; }
 .r-dialog__close:hover, .r-dialog__close:focus-visible { color: var(--danger-deep); background: rgb(var(--ink-rgb) / 8%); }
 /* 標題預留叉叉的寬度，長標題末字才不會藏到鈕底下 */
 .r-dialog__content > h2 { margin: 0 0 12px; padding-right: 46px; }
+/* ── 全域確認框（ConfirmDialog.vue，reka AlertDialog）──
+   須疊在一般 dialog（40/41）與彈出選單（60）之上：明細 modal 的未儲存守門會蓋在 dialog 上 */
+.r-confirm-overlay { position: fixed; inset: 0; z-index: 70; background: rgb(var(--ink-rgb) / 48%); }
+.r-confirm-overlay[data-state='open'] { animation: fade-in .2s ease; }
+.r-confirm { position: fixed; left: 50%; top: 50%; transform: translate(-50%, -50%); z-index: 71; display: flex; flex-direction: column; overflow: hidden; width: min(440px, calc(100vw - 32px)); max-height: calc(100dvh - 32px); padding: 26px; border: 0; background: var(--paper); color: var(--ink); }
+.r-confirm[data-state='open'] { animation: dialog-in .2s var(--ease-out); }
+.r-confirm > .rough-frame, .r-confirm > .rough-frame > .rough-frame__content { display: flex; flex-direction: column; min-height: 0; }
+.r-confirm__box { min-height: 0; margin: 4px; padding: 14px 16px 14px 18px; overflow-y: auto; overscroll-behavior: contain; }
+.r-confirm__title { margin: 0 0 8px; padding-right: 12px; font-size: 1.15rem; }
+.r-confirm__message { margin: 0; color: var(--ink); line-height: 1.6; }
+/* 動作列：取消在左、確認在右；確認鈕 danger 時為紅色手繪框，與破壞性語意一致 */
+.r-confirm__actions { display: flex; justify-content: flex-end; gap: 10px; margin-top: 22px; }
 /* 對話框內的捲動區：細捲軸、與手繪邊框保持距離，上下虛線提示可捲動 */
 .r-scroll { overflow-y: auto; overscroll-behavior: contain; scrollbar-width: thin; scrollbar-color: rgb(var(--ink-rgb) / 30%) transparent; scrollbar-gutter: stable; }
 /* Chrome 開 dialog 時會把焦點給可捲動區，不要一打開就出現粗橘框 */

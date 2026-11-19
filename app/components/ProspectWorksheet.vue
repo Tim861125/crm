@@ -17,6 +17,7 @@ const emit = defineEmits<{ detail: [contact: Contact] }>()
 const props = defineProps<{ tick?: number }>()
 
 const { flash } = useNotice()
+const { confirm } = useConfirm()
 
 // ── 資料 ─────────────────────────────────────────────────────
 const { data: prospects, status: prospectsStatus, refresh: refreshProspects } = useFetch<Prospect[]>('/api/prospects', { default: () => [] })
@@ -68,7 +69,13 @@ async function addRow(section: ProspectSection) {
 }
 
 async function removeRow(row: Prospect) {
-  if (!window.confirm(`要把「${row.contact.name}」從區塊移除嗎？（總名單裡的人不會被刪除）`)) return
+  const ok = await confirm({
+    title: '從區塊移除',
+    message: `要把「${row.contact.name}」從區塊移除嗎？（總名單裡的人不會被刪除）`,
+    confirmLabel: '移除',
+    danger: true
+  })
+  if (!ok) return
   try {
     await api(`/api/prospects/${row.id}`, { method: 'DELETE' })
     await refreshProspects()

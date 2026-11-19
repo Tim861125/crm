@@ -71,5 +71,8 @@ const { notice } = useNotice()
         >{{ notice.text }}</span>
       </Transition>
     </div>
+
+    <!-- 全域確認框（useConfirm）：取代原生 window.confirm -->
+    <ConfirmDialog />
   </div>
 </template>

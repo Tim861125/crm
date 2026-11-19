@@ -22,6 +22,7 @@ const contact = defineModel<Contact | null>('contact', { default: null })
 const emit = defineEmits<{ refresh: [] }>()
 
 const { flash } = useNotice()
+const { confirm } = useConfirm()
 const open = computed({
   get: () => contact.value != null,
   set: v => !v && (contact.value = null)
@@ -51,13 +52,19 @@ const NONE = '__none__'
 const SELECT_FIELDS = new Set(['level', 'followUpFreq'])
 const withNone = (items: { label: string, value: string }[]) => [{ label: '－', value: NONE }, ...items]
 
-// 未儲存變更偵測：關閉（Esc／背景／關閉鈕）前提示，避免誤丟編輯
+// 未儲存變更偵測：關閉（Esc／背景／關閉鈕）前以全域確認框提示，避免誤丟編輯
 const baseline = ref<Record<string, string>>({})
 const dirty = computed(() =>
   EDITABLE_FIELDS.some(k => (form.value[k] ?? '') !== (baseline.value[k] ?? ''))
 )
-function guardClose(): boolean {
-  return !dirty.value || window.confirm('還有未儲存的修改，確定要關閉嗎？')
+function guardClose(): boolean | Promise<boolean> {
+  if (!dirty.value) return true
+  return confirm({
+    title: '未儲存的修改',
+    message: '還有未儲存的修改，確定要關閉嗎？未儲存的內容會遺失。',
+    confirmLabel: '放棄修改',
+    danger: true
+  })
 }
 
 watch([open, () => contact.value?.id], ([o]) => {
@@ -146,7 +153,7 @@ async function addLog() {
 }
 
 async function removeLog(log: FollowUpLog) {
-  if (!window.confirm('確定刪除這筆跟進紀錄？')) return
+  if (!(await confirm({ title: '刪除跟進紀錄', message: '確定刪除這筆跟進紀錄？', confirmLabel: '刪除', danger: true }))) return
   try {
     await api(`/api/contacts/${contact.value?.id}/logs/${log.id}`, { method: 'DELETE' })
     refreshLogs()

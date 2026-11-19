@@ -4,21 +4,32 @@ import { DialogContent, DialogOverlay, DialogPortal, DialogRoot, DialogTitle } f
 // reka Dialog：焦點陷阱、Esc/背景 dismiss、捲動鎖、body 回填由 reka 負責；
 // 視覺照舊套手繪框（原生日 <dialog> 的 [open]/::backdrop 樣式改寫為 data-state + overlay）
 // guard：關閉前守門（回傳 false 擋下），供「有未儲存變更」等情境確認，
-// Esc／背景／關閉鈕皆經過（dismiss 事件 preventDefault；關閉鈕在 requestClose 內守門）
-const props = defineProps<{ open: boolean, title?: string, guard?: () => boolean }>()
+// Esc／背景／關閉鈕皆經過（dismiss 事件 preventDefault；關閉鈕在 requestClose 內守門）。
+// 可回傳 Promise（如 useConfirm 的全域確認框）：await 期間 dialog 原地不動，true 才關
+const props = defineProps<{ open: boolean, title?: string, guard?: () => boolean | Promise<boolean> }>()
 const emit = defineEmits<{ 'update:open': [open: boolean] }>()
 // class（如 detail-dialog）要落在 Content 的寬度盒上；Root 不渲染元素，預設 fallthrough 無處可去
 defineOptions({ inheritAttrs: false })
 
-function canClose(): boolean {
+function canClose(): boolean | Promise<boolean> {
   return !props.guard || props.guard()
 }
 function requestClose() {
-  if (canClose()) emit('update:open', false)
+  const verdict = canClose()
+  if (verdict === true)
+    emit('update:open', false)
+  else if (typeof verdict !== 'boolean')
+    void verdict.then(ok => ok && emit('update:open', false))
 }
-// Esc／點擊背景：reka 預設直接關閉，守門不過就 preventDefault 擋下
+// Esc／點擊背景：reka 預設直接關閉，守門不過就 preventDefault 擋下；
+// 非同步守門一律先擋，resolve true 後再由我們補發關閉
 function onDismiss(event: Event) {
-  if (!canClose()) event.preventDefault()
+  const verdict = canClose()
+  if (verdict === true)
+    return
+  event.preventDefault()
+  if (typeof verdict !== 'boolean')
+    void verdict.then(ok => ok && emit('update:open', false))
 }
 </script>
 

@@ -11,6 +11,7 @@ const open = defineModel<boolean>('open', { default: false })
 const title = '管理進度階段'
 
 const { flash } = useNotice()
+const { confirm } = useConfirm()
 
 // 同 URL 的 useFetch 快取只在初次共享：本元件 refresh() 不會同步到其他元件
 // （A/B 實測舊版亦然），因此每次成功變更都 emit refresh，由父層刷新自己的清單
@@ -79,7 +80,13 @@ async function moveStage(stage: ContactStage, dir: -1 | 1) {
 }
 
 async function removeStage(stage: ContactStage) {
-  if (!window.confirm(`刪除階段「${stage.label}」？名單上已完成的勾選會保留，但不再顯示。`)) return
+  const ok = await confirm({
+    title: '刪除階段',
+    message: `刪除階段「${stage.label}」？名單上已完成的勾選會保留，但不再顯示。`,
+    confirmLabel: '刪除',
+    danger: true
+  })
+  if (!ok) return
   try {
     await api(`/api/contact-stages/${stage.id}`, { method: 'DELETE' })
     await afterMutation(refreshStages)

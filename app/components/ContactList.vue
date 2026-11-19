@@ -17,6 +17,7 @@ import {
 } from '../utils/crm'
 
 const { flash } = useNotice()
+const { confirm } = useConfirm()
 
 // ── 資料 ─────────────────────────────────────────────────────
 const { data: contacts, status: contactsStatus, error: contactsError, refresh: refreshContacts } = useFetch('/api/contacts', { default: () => [] })
@@ -197,7 +198,13 @@ async function toggleFollowedUp(c: Contact, checked: boolean) {
       })
       flash(`已把「${c.name}」標為今天已跟進，note 裡記了一筆 ✅`)
     } else {
-      if (!window.confirm(`取消勾選會刪除「${c.name}」今天的跟進紀錄，確定？`)) return
+      const ok = await confirm({
+        title: '取消今日跟進',
+        message: `取消勾選會刪除「${c.name}」今天的跟進紀錄，確定？`,
+        confirmLabel: '取消跟進',
+        danger: true
+      })
+      if (!ok) return
       const logs = await api<FollowUpLog[]>(`/api/contacts/${c.id}/logs`)
       const todays = logs.filter(l => l.date === todayStr())
       for (const log of todays)
@@ -233,7 +240,13 @@ async function addContact() {
 }
 
 async function removeContact(c: Contact) {
-  if (!window.confirm(`確定要刪除「${c.name}」嗎？跟進紀錄也會一起刪除。`)) return
+  const ok = await confirm({
+    title: '刪除名單',
+    message: `確定要刪除「${c.name}」嗎？跟進紀錄也會一起刪除。`,
+    confirmLabel: '刪除',
+    danger: true
+  })
+  if (!ok) return
   try {
     await api(`/api/contacts/${c.id}`, { method: 'DELETE' })
     flash(`已刪除「${c.name}」`)
