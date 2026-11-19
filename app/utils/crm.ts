@@ -186,6 +186,47 @@ export function searchAndSortContacts(contacts: Contact[], search: string, sortB
   return list
 }
 
+// ── 總名單欄位篩選 ───────────────────────────────────────────
+// 同欄多選＝任一符合（OR）；跨欄＝同時符合（AND）；空陣列＝該欄不篩。
+// FILTER_NONE（''）為「未設定」特殊值：對應欄位為 null／空字串的紀錄。
+// stage 存階段 id 的字串（與篩選面板選項的 string 值同源）；followed 為 'done' | 'todo'（最後跟進日是否今天，與已跟進 checkbox 同推導）。
+export const FILTER_NONE = ''
+
+export type ContactFilterColumn = 'stage' | 'location' | 'contact' | 'goal' | 'freq' | 'followed'
+export type ContactColumnFilters = Record<ContactFilterColumn, string[]>
+
+export function emptyColumnFilters(): ContactColumnFilters {
+  return { stage: [], location: [], contact: [], goal: [], freq: [], followed: [] }
+}
+
+export function hasColumnFilter(filters: ContactColumnFilters): boolean {
+  return Object.values(filters).some(v => v.length > 0)
+}
+
+export function applyColumnFilters(contacts: Contact[], filters: ContactColumnFilters): Contact[] {
+  const text = (v: string | null) => v ?? FILTER_NONE
+  return contacts.filter(c =>
+    (!filters.stage.length || c.completedStages.some(id => filters.stage.includes(String(id))))
+    && (!filters.location.length || filters.location.includes(text(c.location)))
+    && (!filters.contact.length || filters.contact.includes(text(c.contact)))
+    && (!filters.goal.length || filters.goal.includes(text(c.goal)))
+    && (!filters.freq.length || filters.freq.includes(text(c.followUpFreq)))
+    && (!filters.followed.length || filters.followed.includes(c.lastFollowUp === todayStr() ? 'done' : 'todo'))
+  )
+}
+
+// 篩選面板選項：從資料實際出現的值去重計數；null／空字串併入未設定；未設定固定排最後
+export function columnFilterOptions(values: Array<string | null>): Array<{ value: string, count: number }> {
+  const counts = new Map<string, number>()
+  for (const v of values) {
+    const key = v || FILTER_NONE
+    counts.set(key, (counts.get(key) ?? 0) + 1)
+  }
+  return [...counts]
+    .map(([value, count]) => ({ value, count }))
+    .sort((a, b) => (a.value === FILTER_NONE ? 1 : b.value === FILTER_NONE ? -1 : a.value < b.value ? -1 : a.value > b.value ? 1 : 0))
+}
+
 // 把日期（YYYY-MM-DD）轉成相對今天的中文描述：今天／昨天／N天前／一週前／N個月前…
 export function timeAgo(dateStr: string | null | undefined): string {
   if (!dateStr) return '—'

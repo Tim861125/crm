@@ -4,15 +4,23 @@ import RButton from '../components/rough/RButton.vue'
 import RCheckbox from '../components/rough/RCheckbox.vue'
 import RCombobox from '../components/rough/RCombobox.vue'
 import RInput from '../components/rough/RInput.vue'
+import ColumnFilterMenu from './ColumnFilterMenu.vue'
 import ContactDetailModal from './ContactDetailModal.vue'
 import ContactOptionsModal from './ContactOptionsModal.vue'
 import {
   api,
+  applyColumnFilters,
+  columnFilterOptions,
+  emptyColumnFilters,
+  FILTER_NONE,
   FOLLOW_UP_FREQ_SHORT,
+  hasColumnFilter,
   isOverdue,
   searchAndSortContacts,
   todayStr,
   type Contact,
+  type ContactColumnFilters,
+  type ContactStage,
   type FollowUpLog
 } from '../utils/crm'
 
@@ -25,10 +33,49 @@ const { data: stages, refresh: refreshStages } = useFetch('/api/contact-stages',
 const { data: locations, refresh: refreshLocations } = useFetch('/api/contact-locations', { default: () => [] })
 const { data: methods, refresh: refreshMethods } = useFetch('/api/contact-methods', { default: () => [] })
 
-// ── 搜尋 ─────────────────────────────────────────────────────
+// ── 搜尋與欄位篩選 ───────────────────────────────────────────
+// 篩選採試算表式：同欄多選＝任一符合（OR）、跨欄＝同時符合（AND）；選項由實際資料推導
 const search = ref('')
+const filters = ref<ContactColumnFilters>(emptyColumnFilters())
 
-const visible = computed(() => searchAndSortContacts(contacts.value || [], search.value, false))
+const filtering = computed(() => search.value.trim() !== '' || hasColumnFilter(filters.value))
+const visible = computed(() => applyColumnFilters(searchAndSortContacts(contacts.value || [], search.value, false), filters.value))
+
+function clearAllFilters() {
+  filters.value = emptyColumnFilters()
+}
+
+// 篩選面板選項：資料實際出現的值＋筆數；空值併入「未設定」
+function textOptions(values: Array<string | null>) {
+  return columnFilterOptions(values).map(o => ({ ...o, label: o.value === FILTER_NONE ? '未設定' : o.value }))
+}
+const locationOptions = computed(() => textOptions((contacts.value ?? []).map((c: Contact) => c.location)))
+const contactOptions = computed(() => textOptions((contacts.value ?? []).map((c: Contact) => c.contact)))
+const goalOptions = computed(() => textOptions((contacts.value ?? []).map((c: Contact) => c.goal)))
+// 跟進頻率與表格內容同款短標籤（一週／兩週…）
+const freqOptions = computed(() => columnFilterOptions((contacts.value ?? []).map((c: Contact) => c.followUpFreq))
+  .map(o => ({ ...o, label: o.value === FILTER_NONE ? '未設定' : FOLLOW_UP_FREQ_SHORT[o.value] ?? o.value })))
+// 進度：只列有人完成的階段，筆數＝完成該階段的人數
+const stageOptions = computed(() => ((stages.value ?? []) as ContactStage[])
+  .map(s => ({ value: String(s.id), label: s.label, count: ((contacts.value ?? []) as Contact[]).filter(c => c.completedStages.includes(s.id)).length }))
+  .filter(o => o.count > 0))
+// 已跟進：與 checkbox 同款推導（最後跟進日＝今天）；其他欄的資料推導規則一樣，沒人的狀態不列
+const followedOptions = computed(() => {
+  const list: Contact[] = contacts.value ?? []
+  const done = list.filter(c => c.lastFollowUp === todayStr()).length
+  return [
+    ...(done > 0 ? [{ value: 'done', label: '已跟進', count: done }] : []),
+    ...(list.length - done > 0 ? [{ value: 'todo', label: '未跟進', count: list.length - done }] : [])
+  ]
+})
+
+// 階段在管理 dialog 被刪除時同步移除篩選值，避免「幽靈篩選」（漏斗亮著但面板沒勾任何項、名單無故變空）
+watch(stages, (list: ContactStage[] | null | undefined) => {
+  const alive = new Set((list ?? []).map(s => String(s.id)))
+  const kept = filters.value.stage.filter(id => alive.has(id))
+  if (kept.length !== filters.value.stage.length)
+    filters.value.stage = kept
+})
 
 // 地點欄編輯建議（RCombobox 以文字為值，同原生 datalist）
 const locationLabels = computed(() => (locations.value ?? []).map(l => l.label))
@@ -269,7 +316,12 @@ function onEditKeydown(e: KeyboardEvent) {
     <div class="page-heading">
       <h1>總名單</h1>
       <p>
-        共 {{ stats.total }} 筆<span v-if="stats.overdue"> · <span class="marker-red">逾期 {{ stats.overdue }} 位</span></span>
+        <template v-if="filtering">
+          顯示 {{ visible.length }} / {{ stats.total }} 筆
+        </template>
+        <template v-else>
+          共 {{ stats.total }} 筆
+        </template><span v-if="stats.overdue"> · <span class="marker-red">逾期 {{ stats.overdue }} 位</span></span>
       </p>
     </div>
 
@@ -308,16 +360,21 @@ function onEditKeydown(e: KeyboardEvent) {
           <col style="width: 110px">
           <col style="width: 160px">
           <col style="width: 140px"><!-- 目標：短詞（破題／群星計畫），超長自動折行；編輯時出 RCombobox -->
-          <col style="width: 72px"><!-- 跟進：17px 中文字兩字＋padding 24 ≒ 58，低於 58 時「跟進」會逐字換行變直排 -->
-          <col style="width: 78px"><!-- 已跟進：3 字(≒51)＋padding 24 ≒ 75，取 78 -->
-          <col style="width: 180px"><!-- 動作：Info 鈕(≒78)＋icon 刪除鈕(≒42)＋間距＋td padding 24 ≒ 148，保留 180 緩衝，少於內容寬度時刪除鈕會被 .list-scroll 裁右缘 -->
+          <col style="width: 88px"><!-- 跟進：2 字(≒34)＋漏斗(13)＋間距＋表頭鈕 padding 8＋td padding 24 ≒ 83，72 寬會擠爆 -->
+          <col style="width: 104px"><!-- 已跟進：3 字(≒51)＋漏斗(13)＋間距＋表頭鈕 padding 8＋td padding 24 ≒ 100 -->
+          <col style="width: 160px"><!-- 動作：Info 鈕(≒78)＋icon 刪除鈕(≒42)＋間距＋td padding 24 ≒ 148，160 仍留緩衝；少於內容寬度時刪除鈕會被 .list-scroll 裁右缘 -->
         </colgroup>
         <thead>
           <tr>
             <th>姓名</th>
             <th>
               <span class="th-manage">
-                進度
+                <ColumnFilterMenu
+                  v-model="filters.stage"
+                  label="進度"
+                  :options="stageOptions"
+                  :active="filters.stage.length > 0"
+                />
                 <button
                   type="button"
                   class="th-gear"
@@ -346,11 +403,46 @@ function onEditKeydown(e: KeyboardEvent) {
                 </button>
               </span>
             </th>
-            <th>地點</th>
-            <th>聯絡</th>
-            <th>目標</th>
-            <th>跟進</th>
-            <th>已跟進</th>
+            <th>
+              <ColumnFilterMenu
+                v-model="filters.location"
+                label="地點"
+                :options="locationOptions"
+                :active="filters.location.length > 0"
+              />
+            </th>
+            <th>
+              <ColumnFilterMenu
+                v-model="filters.contact"
+                label="聯絡"
+                :options="contactOptions"
+                :active="filters.contact.length > 0"
+              />
+            </th>
+            <th>
+              <ColumnFilterMenu
+                v-model="filters.goal"
+                label="目標"
+                :options="goalOptions"
+                :active="filters.goal.length > 0"
+              />
+            </th>
+            <th>
+              <ColumnFilterMenu
+                v-model="filters.freq"
+                label="跟進"
+                :options="freqOptions"
+                :active="filters.freq.length > 0"
+              />
+            </th>
+            <th>
+              <ColumnFilterMenu
+                v-model="filters.followed"
+                label="已跟進"
+                :options="followedOptions"
+                :active="filters.followed.length > 0"
+              />
+            </th>
             <th />
           </tr>
         </thead>
@@ -609,9 +701,20 @@ function onEditKeydown(e: KeyboardEvent) {
               <template v-if="search">
                 找不到符合「{{ search }}」的名單
               </template>
+              <template v-else-if="hasColumnFilter(filters)">
+                目前篩選条件下沒有名單
+              </template>
               <template v-else>
                 還沒有任何人名 🔍 按上面的「新增名單」開始
               </template>
+              <button
+                v-if="hasColumnFilter(filters)"
+                type="button"
+                class="link-button"
+                @click="clearAllFilters"
+              >
+                清除所有篩選
+              </button>
             </td>
           </tr>
         </tbody>

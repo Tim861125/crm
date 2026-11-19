@@ -105,6 +105,8 @@ button:disabled { cursor: not-allowed; opacity: .55; }
 /* 面板寬度：下限對齊各自的 trigger／anchor，上限不超出可用空間（reka CSS 變數） */
 .r-select__panel { min-width: var(--reka-select-trigger-width); max-width: var(--reka-select-content-available-width); }
 .r-combo__panel { min-width: var(--reka-combobox-trigger-width); max-width: var(--reka-combobox-content-available-width); }
+/* 欄頭篩選面板：寬度由內容決定，設下限避免兩字選項把面板壓得過窄 */
+.r-filter__panel { min-width: 190px; max-width: 300px; }
 /* 開關動畫掛在內層面板（popper 元素的 transform 由 reka 定位內聯控制，不可覆蓋）；
    只用 opacity／translate——RoughFrame 依尺寸繪製，縮放會畫錯框 */
 .r-pop-menu[data-state='open'] .r-pop-menu__panel { animation: select-in .16s var(--ease-out); }
@@ -197,7 +199,7 @@ button:disabled { cursor: not-allowed; opacity: .55; }
 .skip-link:focus { top: 8px; }
 .sr-only { position: absolute; width: 1px; height: 1px; margin: -1px; padding: 0; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; border: 0; }
 .site-header { border-bottom: 1px solid rgb(var(--ink-rgb) / 16%); }
-.site-header__inner { max-width: 1160px; min-height: 72px; margin: 0 auto; padding: 10px 24px; display: flex; align-items: center; justify-content: space-between; gap: 20px; }
+.site-header__inner { max-width: 1190px; min-height: 72px; margin: 0 auto; padding: 10px 24px; display: flex; align-items: center; justify-content: space-between; gap: 20px; }
 /* 品牌連結的樣式改由 app.vue 的 utility 類承載（text-accent text-[1.25rem] font-bold no-underline whitespace-nowrap），
    .site-brand 只留作語意錨點與測試抓手。text-xl 會連 line-height 一起帶入，故用 text-[1.25rem] 只改字級。 */
 .site-nav { display: flex; align-items: center; gap: 6px; }
@@ -207,8 +209,8 @@ button:disabled { cursor: not-allowed; opacity: .55; }
 /* 亮／暗切換鈕（ThemeToggle.vue）：比對側導覽文字的 44px 命中區 */
 .theme-toggle { display: inline-flex; align-items: center; justify-content: center; width: 40px; height: 40px; margin-left: 6px; border: 0; border-radius: 10px; background: transparent; color: var(--muted); transition: color .15s ease, background-color .15s ease; }
 .theme-toggle:hover { color: var(--accent-strong); background: rgb(var(--ink-rgb) / 6%); }
-/* max-width 1160＝名單表 min-width 1032＋padding 48＋緩衝：總名單在桌面寬度不出現橫向滾輪 */
-.page-content { max-width: 1160px; margin: 0 auto; padding: 36px 24px; }
+/* max-width 1190＝名單表 min-width 1132＋padding 48－緩衝調整：總名單在桌面寬度不出現橫向滾輪（與 .site-header__inner 同寬對齊） */
+.page-content { max-width: 1190px; margin: 0 auto; padding: 36px 24px; }
 .page-heading { display: flex; align-items: center; justify-content: space-between; gap: 12px; flex-wrap: wrap; }
 /* 同一頁多區塊時第二區塊用 h2，維持標題層級但視覺同規模 */
 .page-heading h1, .page-heading .page-heading__sub { margin: 0; font-size: clamp(1.8rem, 6vw, 2.7rem); }
@@ -249,7 +251,7 @@ button:disabled { cursor: not-allowed; opacity: .55; }
 .site-toast span.is-error { background: var(--red); color: var(--danger-deep); }
 
 /* 互動回饋 */
-.site-nav a, .cell-edit, .link-button, .th-gear, .row-step { transition: color .15s ease; }
+.site-nav a, .cell-edit, .link-button, .th-gear, .th-filter, .row-step { transition: color .15s ease; }
 
 @keyframes fade-in { from { opacity: 0; } }
 @keyframes rise-in { from { opacity: 0; transform: translateY(6px); } }
@@ -283,19 +285,35 @@ button:disabled { cursor: not-allowed; opacity: .55; }
 .list-scroll { overflow-x: auto; }
 /* 固定欄寬防跑版：inline 編輯把按鈕換成輸入框時，auto 佈局會整表重排；
    table-layout: fixed 讓欄寬只認 colgroup（見 ContactList.vue）。
-   min-width＝各固定欄總和(910)＋進度欄下限(200)：低於總寬時整表橫滾，
+   min-width＝各固定欄總和(932)＋進度欄下限(200)：低於總寬時整表橫滾，
    不可只設固定欄總和 —— 那會把 auto 的進度欄壓成 0px，表頭按鈕溢出壓到相鄰欄（誤點來源） */
-.list-scroll .r-table { min-width: 1110px; table-layout: fixed; }
+.list-scroll .r-table { min-width: 1132px; table-layout: fixed; }
 /* 表頭永不折行：固定欄寬下若欄不夠寬，中文會逐字換行變直排（如「跟進」） */
 .list-scroll .r-table th { white-space: nowrap; }
 .list-scroll .r-table td { vertical-align: top; overflow-wrap: anywhere; }
 /* 編輯框貼滿欄位寬，寬度不再由 content-size 決定（蓋過 .cell-input 的固定寬） */
 .list-scroll .cell-input { width: 100%; }
-/* 欄頭管理齒輪（進度）：文字保持純文字，齒輪是唯一入口 */
+/* 欄頭管理齒輪（進度）：與欄篩選鈕並排，齒輪仍是階段管理唯一入口 */
 .th-manage { display: inline-flex; align-items: center; gap: 3px; }
 .th-gear { display: inline-flex; align-items: center; justify-content: center; padding: 4px; border: 0; border-radius: 6px; background: transparent; color: var(--muted); cursor: pointer; }
 .th-gear svg { display: block; width: 15px; height: 15px; }
 .th-gear:hover, .th-gear:focus-visible { color: var(--accent-strong); background: rgb(var(--ink-rgb) / 6%); }
+/* 欄頭篩選鈕（ColumnFilterMenu）：欄位標題本身就是 trigger，漏斗描線鈕當 affordance；
+   啟用時文字與漏斗染螢光色、漏斗填底色（同 .marker 的高筆感） */
+.th-filter { display: inline-flex; align-items: center; gap: 4px; padding: 2px 4px; border: 0; border-radius: 6px; background: transparent; font: inherit; color: inherit; cursor: pointer; }
+.th-filter svg { display: block; flex: none; width: 13px; height: 13px; color: var(--muted); transition: color .15s ease; }
+.th-filter:hover, .th-filter:focus-visible { background: rgb(var(--ink-rgb) / 6%); }
+.th-filter[data-state='open'] { background: color-mix(in srgb, var(--accent) 7%, transparent); }
+.th-filter.is-active { color: var(--accent-strong); }
+.th-filter.is-active svg { color: var(--accent-strong); fill: var(--accent-soft); }
+/* 篩選面板列：checkbox 靠左、筆數右對齊；關著時面板不收合（reka popover 多選行為） */
+.r-filter__row { display: flex; align-items: center; gap: 8px; padding: 3px 8px; border-radius: 8px; }
+.r-filter__row:hover { background: rgb(var(--ink-rgb) / 4%); }
+.r-filter__row .r-choice { flex: 1; min-width: 0; }
+.r-filter__row .r-choice span { overflow-wrap: anywhere; }
+.r-filter__count { flex: none; color: var(--muted); font-size: .85rem; font-variant-numeric: tabular-nums; }
+.r-filter__clear { display: block; width: 100%; margin-top: 4px; padding: 7px 10px; border: 0; border-radius: 8px; background: transparent; text-align: left; color: var(--accent-strong); font-size: .9rem; text-decoration: underline; cursor: pointer; }
+.r-filter__clear:hover, .r-filter__clear:focus-visible { background: rgb(var(--ink-rgb) / 6%); }
 .stage-chip { padding: 2px 10px; border: 0; border-radius: 999px; background: var(--chip); color: var(--muted); font-size: .9rem; margin: 2px 5px 2px 0; }
 .stage-chip.is-done { background: var(--accent-strong); color: #fff; font-weight: 700; }
 html.dark .stage-chip.is-done { color: var(--paper); }
@@ -373,6 +391,7 @@ html.dark .stage-chip.is-done { color: var(--paper); }
   .row-step { display: inline-flex; align-items: center; justify-content: center; min-width: 44px; min-height: 44px; }
   .cell-edit, .link-button, .show-more-button { min-height: 44px; }
   .th-gear { min-width: 36px; min-height: 36px; }
+  .th-filter { min-height: 36px; padding: 2px 8px; }
   .r-pop-menu__item { min-height: 44px; }
   .r-pop-menu__x { min-width: 36px; min-height: 36px; }
 }
