@@ -23,6 +23,7 @@ export default defineEventHandler(async (event) => {
   if ('location' in data) patch.location = data.location || null
   if ('friendOf' in data) patch.friendOf = data.friendOf || null
   if ('devPartner' in data) patch.devPartner = data.devPartner || null
+  if ('goal' in data) patch.goal = data.goal || null
   if ('info' in data) patch.info = data.info || null
   if ('status' in data) patch.status = data.status || null
   if ('contact' in data) patch.contact = data.contact || null

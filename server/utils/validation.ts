@@ -26,6 +26,7 @@ export const contactInputSchema = z.object({
   contact: z.string().trim().nullish(),
   friendOf: z.string().trim().nullish(),
   devPartner: z.string().trim().nullish(),
+  goal: z.string().trim().nullish(),
   info: z.string().trim().nullish(),
   level: z.enum(PROSPECT_LEVELS).or(z.literal('')).nullish(),
   status: z.string().trim().nullish(),
@@ -93,6 +94,13 @@ export const devPartnerOptionInputSchema = z.object({
 })
 
 export type DevPartnerOptionInput = z.infer<typeof devPartnerOptionInputSchema>
+
+// 「目標」選項（note modal 下拉用）
+export const goalOptionInputSchema = z.object({
+  label: z.string().trim().min(1, '請輸入目標')
+})
+
+export type GoalOptionInput = z.infer<typeof goalOptionInputSchema>
 
 // 各區塊 & 等級允許值（每日任務 prospects 用）
 export const PROSPECT_SECTIONS = ['develop', 'reserve', 'five', 'network'] as const

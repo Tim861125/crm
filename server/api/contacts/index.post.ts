@@ -15,6 +15,7 @@ export default defineEventHandler(async (event) => {
       // 清單 UI 的「先建立再 inline 填寫」在使用者端只會送 name，故其他延伸欄位預設全空
       friendOf: data.friendOf || null,
       devPartner: data.devPartner || null,
+      goal: data.goal || null,
       info: data.info || null,
       level: data.level || null,
       status: data.status || null

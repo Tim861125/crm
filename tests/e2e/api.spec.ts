@@ -16,6 +16,7 @@ interface Contact {
   broached: boolean
   completedStages: number[]
   contact: string | null
+  goal: string | null
   followUpFreq: string | null
   lastFollowUp: string | null
   nextFollowUp: string | null
@@ -240,6 +241,39 @@ for (const route of ['/api/friend-of-options', '/api/dev-partner-options']) {
     })
   })
 }
+
+// 「目標」選項（note modal 下拉）：預設灌入常用目標，可增／刪
+describe('/api/goal-options', () => {
+  it('預設「破題／群星計畫／打籃球」，可新增／刪除', async () => {
+    const list = await $fetch<{ id: number, label: string }[]>('/api/goal-options')
+    expect(list.map(o => o.label)).toEqual(['破題', '群星計畫', '打籃球'])
+    const added = await $fetch<{ id: number, label: string }>('/api/goal-options', { method: 'POST', body: { label: '爬山' } })
+    expect((await $fetch('/api/goal-options')).map((o: { label: string }) => o.label)).toEqual(['破題', '群星計畫', '打籃球', '爬山'])
+    await $fetch(`/api/goal-options/${added.id}`, { method: 'DELETE' })
+    expect((await $fetch('/api/goal-options')).map((o: { label: string }) => o.label)).toEqual(['破題', '群星計畫', '打籃球'])
+    expect(await statusCodeOf($fetch(`/api/goal-options/${added.id}`, { method: 'DELETE' }))).toBe(404)
+  })
+
+  it('空名稱被擋 400', async () => {
+    expect(await statusCodeOf($fetch('/api/goal-options', { method: 'POST', body: { label: '  ' } }))).toBe(400)
+  })
+})
+
+describe('名單「目標」欄位', () => {
+  it('POST／PATCH 會存入 goal；沒送的 PATCH 不清掉它；送空字串清成 null', async () => {
+    const c = await $fetch<Contact>('/api/contacts', { method: 'POST', body: { name: '目標測試', goal: '群星計畫' } })
+    expect(c.goal).toBe('群星計畫')
+
+    const patched = await $fetch<Contact>(`/api/contacts/${c.id}`, { method: 'PATCH', body: { goal: '打籃球' } })
+    expect(patched.goal).toBe('打籃球')
+
+    const kept = await $fetch<Contact>(`/api/contacts/${c.id}`, { method: 'PATCH', body: { name: '目標測試改' } })
+    expect(kept.goal).toBe('打籃球')
+
+    const cleared = await $fetch<Contact>(`/api/contacts/${c.id}`, { method: 'PATCH', body: { goal: '' } })
+    expect(cleared.goal).toBeNull()
+  })
+})
 
 describe('/api/prospects 每日任務', () => {
   const T = '2026-11-07'

@@ -18,6 +18,11 @@ export function getDb(): CrmDatabase {
     if (!seededMethods || Number(seededMethods[0]) === 0) {
       db.run(sql`INSERT INTO contact_methods (label, created_at) VALUES ('LINE', 0), ('IG', 0), ('FB', 0)`)
     }
+    // 目標選項預設破題／群星計畫／打籃球（常見目標，省去冷起手動建檔）
+    const [seededGoals] = db.values<[number]>(sql`SELECT COUNT(*) FROM goal_options`)
+    if (!seededGoals || Number(seededGoals[0]) === 0) {
+      db.run(sql`INSERT INTO goal_options (label, created_at) VALUES ('破題', 0), ('群星計畫', 0), ('打籃球', 0)`)
+    }
     singleton = db
   }
   return singleton

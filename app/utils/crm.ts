@@ -12,6 +12,8 @@ export interface Contact {
   contact: string | null
   friendOf: string | null
   devPartner: string | null
+  // 目標：這位要達成的目標（選項見 goal_options 表）
+  goal: string | null
   info: string | null
   // 等級：SSR / SR / R
   level: string | null
@@ -50,6 +52,14 @@ export interface FriendOfOption {
 
 // 「開發夥伴」選項（對應 dev_partner_options 表；與 FriendOfOption 同款）
 export interface DevPartnerOption {
+  id: number
+  userId: number | null
+  label: string
+  createdAt: number
+}
+
+// 「目標」選項（對應 goal_options 表；note modal 下拉用，預設 seeded 破題／群星計畫／打籃球）
+export interface GoalOption {
   id: number
   userId: number | null
   label: string

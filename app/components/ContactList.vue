@@ -75,6 +75,31 @@ async function deleteMethod(label: string) {
   }
 }
 
+// 目標欄（同地點模式：下拉內「＋ 新增」建檔即選取、選項右緣 × 刪除）
+const { data: goals, refresh: refreshGoals } = useFetch('/api/goal-options', { default: () => [] })
+const goalLabels = computed(() => (goals.value ?? []).map((o: GoalOption) => o.label))
+
+async function createGoal(c: Contact, label: string) {
+  try {
+    await api('/api/goal-options', { method: 'POST', body: { label } })
+    await refreshGoals()
+    commitEdit(c, 'goal') // 建立的同時就地把這位存入並結束編輯
+  } catch (err: unknown) {
+    flash(`新增「目標」失敗：${(err as Error)?.message}`, { error: true })
+  }
+}
+
+async function deleteGoal(label: string) {
+  const hit = (goals.value ?? []).find((o: GoalOption) => o.label === label)
+  if (!hit) return
+  try {
+    await api(`/api/goal-options/${hit.id}`, { method: 'DELETE' })
+    await refreshGoals()
+  } catch (err: unknown) {
+    flash(`刪除「目標」選項失敗：${(err as Error)?.message}`, { error: true })
+  }
+}
+
 const stats = computed(() => {
   const list = contacts.value ?? []
   return {
@@ -112,15 +137,15 @@ async function patchContact(c: Contact, patch: Partial<Contact> & Record<string,
   }
 }
 
-// ── inline 編輯儲存格（姓名／聯絡方式／地點／Info）─────────────
+// ── inline 編輯儲存格（姓名／聯絡方式／地點／目標）─────────────
 const editingKey = ref<string | null>(null)
 const editingValue = ref('')
 
-type EditableField = 'name' | 'contact' | 'location' | 'info'
+type EditableField = 'name' | 'contact' | 'location' | 'goal'
 
 function startEdit(c: Contact, field: EditableField) {
   editingKey.value = `${field}-${c.id}`
-  editingValue.value = { name: c.name, contact: c.contact, location: c.location, info: c.info }[field] ?? ''
+  editingValue.value = { name: c.name, contact: c.contact, location: c.location, goal: c.goal }[field] ?? ''
   // 進入編輯後聚焦輸入框（巨集按新增時直接打字；鍵盤操作不需再點一次）
   void nextTick(() => {
     const input = document.querySelector<HTMLInputElement>(`input.cell-input[data-edit="${editingKey.value}"]`)
@@ -230,7 +255,7 @@ function onEditKeydown(e: KeyboardEvent) {
           <col><!-- 進度：吃掉剩餘寬度 -->
           <col style="width: 110px">
           <col style="width: 160px">
-          <col style="width: 210px"><!-- Info：長文字折行後以兩行截斷（見 .cell-note），完整內容放 title -->
+          <col style="width: 140px"><!-- 目標：短詞（破題／群星計畫），超長自動折行；編輯時出 RCombobox -->
           <col style="width: 72px"><!-- 跟進：17px 中文字兩字＋padding 24 ≒ 58，低於 58 時「跟進」會逐字換行變直排 -->
           <col style="width: 180px"><!-- 動作：Info 鈕(≒78)＋icon 刪除鈕(≒42)＋間距＋td padding 24 ≒ 148，保留 180 緩衝，少於內容寬度時刪除鈕會被 .list-scroll 裁右缘 -->
         </colgroup>
@@ -270,7 +295,7 @@ function onEditKeydown(e: KeyboardEvent) {
             </th>
             <th>地點</th>
             <th>聯絡</th>
-            <th>Info</th>
+            <th>目標</th>
             <th>跟進</th>
             <th />
           </tr>
@@ -404,31 +429,36 @@ function onEditKeydown(e: KeyboardEvent) {
               </template>
             </td>
 
-            <!-- Info -->
+            <!-- 目標 -->
             <td>
-              <template v-if="editingKey === `info-${c.id}`">
-                <input
+              <template v-if="editingKey === `goal-${c.id}`">
+                <RCombobox
                   v-model="editingValue"
+                  :options="goalLabels"
                   class="cell-input"
-                  :data-edit="`info-${c.id}`"
-                  aria-label="編輯 Info"
-                  @blur="commitEdit(c, 'info')"
+                  :data-edit="`goal-${c.id}`"
+                  aria-label="編輯目標"
+                  empty-text="沒有符合的目標，輸入後可選下方新增"
+                  creatable
+                  deletable
+                  create-label="新增目標（先輸入名稱）"
+                  @create="label => createGoal(c, label)"
+                  @delete="deleteGoal"
+                  @blur="commitEdit(c, 'goal')"
                   @keydown="onEditKeydown"
-                >
+                />
               </template>
               <template v-else>
-                <span class="cell-note">
-                  <button
-                    type="button"
-                    class="cell-edit cell-edit--plain"
-                    :data-edit-target="`info-${c.id}`"
-                    :aria-label="`編輯「${c.name}」的 Info：${c.info ?? '未填寫'}`"
-                    :title="c.info || '點擊編輯 Info'"
-                    @click="startEdit(c, 'info')"
-                  >
-                    {{ c.info ?? '－' }}
-                  </button>
-                </span>
+                <button
+                  type="button"
+                  class="cell-edit cell-edit--plain"
+                  :data-edit-target="`goal-${c.id}`"
+                  :aria-label="`編輯「${c.name}」的目標：${c.goal ?? '未設定'}`"
+                  :title="c.goal || '點擊編輯目標'"
+                  @click="startEdit(c, 'goal')"
+                >
+                  {{ c.goal ?? '－' }}
+                </button>
               </template>
             </td>
 

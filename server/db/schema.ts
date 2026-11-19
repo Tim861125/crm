@@ -23,6 +23,8 @@ export const contacts = sqliteTable('contacts', {
   friendOf: text('friend_of'),
   // 一起開發的夥伴姓名（開發名單）
   devPartner: text('dev_partner'),
+  // 目標（開發名單）：這位要達成的目標（選項見 goal_options）
+  goal: text('goal'),
   // Info（開發名單）：新人資訊＋原「備註」欄（note）合併於此
   info: text('info'),
   // 等級：SSR / SR / R（開發名單）
@@ -113,6 +115,20 @@ export const devPartnerOptions = sqliteTable('dev_partner_options', {
     .$defaultFn(() => Math.floor(Date.now() / 1000))
 }, table => ({
   userIdIdx: index('dev_partner_options_user_id_idx').on(table.userId)
+}))
+
+// 名單「目標」選項（可增／刪；note modal 下拉用，見 ContactDetailModal；
+// 預設三項由 getDb() seeded，比照地點／聯絡方式）
+export const goalOptions = sqliteTable('goal_options', {
+  id: integer('id').primaryKey({ autoIncrement: true }),
+  userId: integer('user_id'),
+  // 目標名稱（如 破題／群星計畫）
+  label: text('label').notNull(),
+  createdAt: integer('created_at')
+    .notNull()
+    .$defaultFn(() => Math.floor(Date.now() / 1000))
+}, table => ({
+  userIdIdx: index('goal_options_user_id_idx').on(table.userId)
 }))
 
 // 每日任務（個人名單表）：四個區塊共用一張表，以 section 區分

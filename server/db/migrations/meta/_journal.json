@@ -43,6 +43,13 @@
       "when": 1795061317773,
       "tag": "0005_lowly_maelstrom",
       "breakpoints": true
+    },
+    {
+      "idx": 6,
+      "version": "6",
+      "when": 1795062835979,
+      "tag": "0006_awesome_talos",
+      "breakpoints": true
     }
   ]
 }

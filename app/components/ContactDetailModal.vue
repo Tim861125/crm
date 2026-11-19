@@ -33,6 +33,7 @@ const EDITABLE_FIELDS = [
   'contact',
   'friendOf',
   'devPartner',
+  'goal',
   'info',
   'level',
   'status',
@@ -120,6 +121,7 @@ watch(open, (o) => {
     refreshMethods()
     refreshFriendOfs()
     refreshDevPartners()
+    refreshGoals()
   }
 })
 
@@ -251,6 +253,30 @@ async function deleteDevPartner(label: string) {
   }
 }
 
+// 「目標」欄選項（同地點模式：「＋ 新增」建檔＋選項右緣 × 刪除；預設 seeded 三項）
+const { data: goals, refresh: refreshGoals } = useFetch('/api/goal-options', { default: () => [] })
+const goalLabels = computed(() => (goals.value ?? []).map((o: GoalOption) => o.label))
+
+async function createGoal(label: string) {
+  try {
+    await api('/api/goal-options', { method: 'POST', body: { label } })
+    await refreshGoals()
+  } catch (err: unknown) {
+    flash(`新增「目標」選項失敗：${(err as Error)?.message}`, { error: true })
+  }
+}
+
+async function deleteGoal(label: string) {
+  const hit = (goals.value ?? []).find((o: GoalOption) => o.label === label)
+  if (!hit) return
+  try {
+    await api(`/api/goal-options/${hit.id}`, { method: 'DELETE' })
+    await refreshGoals()
+  } catch (err: unknown) {
+    flash(`刪除「目標」選項失敗：${(err as Error)?.message}`, { error: true })
+  }
+}
+
 const freqItems = FOLLOW_UP_FREQ_OPTIONS.map(v => ({ label: v, value: v }))
 const levelItems = LEVEL_OPTIONS.map(v => ({ label: v, value: v }))
 </script>
@@ -330,6 +356,23 @@ const levelItems = LEVEL_OPTIONS.map(v => ({ label: v, value: v }))
             :open-on-focus="false"
             @create="createDevPartner"
             @delete="deleteDevPartner"
+          />
+        </label>
+
+        <label>
+          <span>目標</span>
+          <RCombobox
+            v-model="form.goal"
+            :options="goalLabels"
+            empty-text="沒有符合的目標，輸入後可選下方新增"
+            creatable
+            deletable
+            create-label="新增目標（先輸入名稱）"
+            placeholder="目標…"
+            aria-label="編輯目標"
+            :open-on-focus="false"
+            @create="createGoal"
+            @delete="deleteGoal"
           />
         </label>
 
