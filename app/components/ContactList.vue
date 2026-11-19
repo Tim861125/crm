@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import RBadge from '../components/rough/RBadge.vue'
 import RButton from '../components/rough/RButton.vue'
+import RCheckbox from '../components/rough/RCheckbox.vue'
 import RCombobox from '../components/rough/RCombobox.vue'
 import RInput from '../components/rough/RInput.vue'
 import ContactDetailModal from './ContactDetailModal.vue'
@@ -10,7 +11,9 @@ import {
   FOLLOW_UP_FREQ_SHORT,
   isOverdue,
   searchAndSortContacts,
-  type Contact
+  todayStr,
+  type Contact,
+  type FollowUpLog
 } from '../utils/crm'
 
 const { flash } = useNotice()
@@ -176,6 +179,42 @@ function toggleStage(c: Contact, stageId: number) {
   patchContact(c, { completedStages: next })
 }
 
+// ── 已跟進 checkbox（動作欄 note 鈕左邊）───────────────────────
+// 打勾＝在 note 的跟進紀錄記一筆「今天」（內容：已跟進）；取消＝刪掉今天的所有紀錄。
+// 勾選狀態不加 DB 欄位，由 lastFollowUp 是否為今天推導：logs 新增／刪除端點都會自動回算它。
+const followBusy = ref<number[]>([])
+
+const followedUpToday = (c: Contact) => c.lastFollowUp === todayStr()
+
+async function toggleFollowedUp(c: Contact, checked: boolean) {
+  if (followBusy.value.includes(c.id)) return
+  followBusy.value = [...followBusy.value, c.id]
+  try {
+    if (checked) {
+      await api(`/api/contacts/${c.id}/logs`, {
+        method: 'POST',
+        body: { date: todayStr(), content: '已跟進' }
+      })
+      flash(`已把「${c.name}」標為今天已跟進，note 裡記了一筆 ✅`)
+    } else {
+      if (!window.confirm(`取消勾選會刪除「${c.name}」今天的跟進紀錄，確定？`)) return
+      const logs = await api<FollowUpLog[]>(`/api/contacts/${c.id}/logs`)
+      const todays = logs.filter(l => l.date === todayStr())
+      for (const log of todays)
+        await api(`/api/contacts/${c.id}/logs/${log.id}`, { method: 'DELETE' })
+      // 沒有今天的紀錄可刪 → 最後跟進日是手動填的，直接清成 null（PATCH 會連 nextFollowUp 重算）
+      if (!todays.length)
+        await api(`/api/contacts/${c.id}`, { method: 'PATCH', body: { lastFollowUp: null } })
+      flash(`已取消「${c.name}」的今日跟進`)
+    }
+    await refreshContacts()
+  } catch (err: unknown) {
+    flash(`更新「${c.name}」已跟進狀態失敗：${(err as Error)?.message}`, { error: true })
+  } finally {
+    followBusy.value = followBusy.value.filter(id => id !== c.id)
+  }
+}
+
 // ── 新增 / 刪除名單 ──────────────────────────────────────────
 const adding = ref(false)
 
@@ -257,6 +296,7 @@ function onEditKeydown(e: KeyboardEvent) {
           <col style="width: 160px">
           <col style="width: 140px"><!-- 目標：短詞（破題／群星計畫），超長自動折行；編輯時出 RCombobox -->
           <col style="width: 72px"><!-- 跟進：17px 中文字兩字＋padding 24 ≒ 58，低於 58 時「跟進」會逐字換行變直排 -->
+          <col style="width: 78px"><!-- 已跟進：3 字(≒51)＋padding 24 ≒ 75，取 78 -->
           <col style="width: 180px"><!-- 動作：Info 鈕(≒78)＋icon 刪除鈕(≒42)＋間距＋td padding 24 ≒ 148，保留 180 緩衝，少於內容寬度時刪除鈕會被 .list-scroll 裁右缘 -->
         </colgroup>
         <thead>
@@ -297,6 +337,7 @@ function onEditKeydown(e: KeyboardEvent) {
             <th>聯絡</th>
             <th>目標</th>
             <th>跟進</th>
+            <th>已跟進</th>
             <th />
           </tr>
         </thead>
@@ -467,6 +508,17 @@ function onEditKeydown(e: KeyboardEvent) {
               {{ c.followUpFreq ? FOLLOW_UP_FREQ_SHORT[c.followUpFreq] : '—' }}
             </td>
 
+            <!-- 已跟進：打勾＝note 記一筆今天的跟進紀錄；勾選狀態＝最後跟進日是不是今天 -->
+            <td class="cell-check">
+              <RCheckbox
+                :model-value="followedUpToday(c)"
+                :disabled="followBusy.includes(c.id)"
+                :aria-label="`「${c.name}」今天${followedUpToday(c) ? '已跟進，取消勾選會刪掉今天的跟進紀錄' : '尚未跟進，打勾記一筆今天的跟進'}`"
+                :title="followedUpToday(c) ? '今天已跟進（取消勾選會刪掉今天的跟進紀錄）' : '標記今天已跟進（在 note 新增一筆今天的跟進日期）'"
+                @update:model-value="toggleFollowedUp(c, $event)"
+              />
+            </td>
+
             <!-- 動作 -->
             <td style="white-space: nowrap">
               <RButton
@@ -515,7 +567,7 @@ function onEditKeydown(e: KeyboardEvent) {
 
           <tr v-if="contactsStatus === 'pending' && !visible.length">
             <td
-              colspan="7"
+              colspan="8"
               class="empty-cell"
             >
               載入中…
@@ -523,7 +575,7 @@ function onEditKeydown(e: KeyboardEvent) {
           </tr>
           <tr v-else-if="contactsError">
             <td
-              colspan="7"
+              colspan="8"
               class="empty-cell"
             >
               名單載入失敗
@@ -538,7 +590,7 @@ function onEditKeydown(e: KeyboardEvent) {
           </tr>
           <tr v-else-if="!visible.length">
             <td
-              colspan="7"
+              colspan="8"
               class="empty-cell"
             >
               <template v-if="search">

@@ -265,9 +265,9 @@ button:disabled { cursor: not-allowed; opacity: .55; }
 .list-scroll { overflow-x: auto; }
 /* 固定欄寬防跑版：inline 編輯把按鈕換成輸入框時，auto 佈局會整表重排；
    table-layout: fixed 讓欄寬只認 colgroup（見 ContactList.vue）。
-   min-width＝各固定欄總和(832)＋進度欄下限(200)：低於總寬時整表橫滾，
+   min-width＝各固定欄總和(910)＋進度欄下限(200)：低於總寬時整表橫滾，
    不可只設固定欄總和 —— 那會把 auto 的進度欄壓成 0px，表頭按鈕溢出壓到相鄰欄（誤點來源） */
-.list-scroll .r-table { min-width: 1032px; table-layout: fixed; }
+.list-scroll .r-table { min-width: 1110px; table-layout: fixed; }
 /* 表頭永不折行：固定欄寬下若欄不夠寬，中文會逐字換行變直排（如「跟進」） */
 .list-scroll .r-table th { white-space: nowrap; }
 .list-scroll .r-table td { vertical-align: top; overflow-wrap: anywhere; }
@@ -286,6 +286,10 @@ html.dark .stage-chip.is-done { color: var(--paper); }
 .cell-name { display: flex; align-items: baseline; flex-wrap: nowrap; min-width: 0; }
 .cell-name .cell-edit { min-width: 0; overflow-wrap: anywhere; }
 .list-scroll .r-badge { margin-left: 6px; white-space: nowrap; flex: none; }
+/* 已跟進欄 checkbox：置中；蓋掉 .r-choice 表單用的 min-height 與空 label 佔位 */
+.cell-check { text-align: center; }
+.cell-check .r-choice { min-height: 0; }
+.cell-check .r-choice span:empty { display: none; }
 .empty-cell { padding: 40px 16px !important; text-align: center; color: var(--muted); }
 
 /* ── 每日任務頁：今日跟進清單 ───────────────────────────────── */
