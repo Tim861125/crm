@@ -128,3 +128,11 @@ export const followUpLogSchema = z.object({
 })
 
 export type FollowUpLogInput = z.infer<typeof followUpLogSchema>
+
+// 跟進紀錄：編輯（跟進日期／跟進內容，只送變動欄位）
+export const followUpLogPatchSchema = z.object({
+  date: date.optional(),
+  content: z.string().trim().nullish()
+})
+
+export type FollowUpLogPatch = z.infer<typeof followUpLogPatchSchema>

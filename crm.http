@@ -46,6 +46,15 @@ Content-Type: application/json
 ### 取得跟進紀錄
 GET {{base}}/contacts/1/logs
 
+### 編輯單筆跟進紀錄（只送變動欄位；改日期會比照刪除回算 last/next）
+PATCH {{base}}/contacts/1/logs/1
+Content-Type: application/json
+
+{
+  "date": "2026-11-08",
+  "content": "改後：電話聊了一陣子"
+}
+
 ### 進度階段
 GET {{base}}/contact-stages
 

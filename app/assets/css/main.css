@@ -336,6 +336,11 @@ html.dark .stage-chip.is-done { color: var(--paper); }
 .log-item__body { flex: 1; min-width: 0; }
 .log-ago { margin: 0 0 2px; color: var(--muted); font-size: .82rem; }
 .log-content { margin: 0; white-space: pre-wrap; }
+/* 單筆紀錄 inline 編輯：日期／內容點了就變輸入框（比照名單頁 cell-edit 互動） */
+.log-date-edit { font: inherit; color: inherit; cursor: pointer; }
+.log-content-edit { width: 100%; text-align: left; white-space: pre-wrap; }
+.log-date-input { width: 168px; }
+.log-content-input { display: block; width: 100%; }
 
 /* ── 管理階段／選項 modal ─────────────────────────────────── */
 .tab-panel { display: grid; gap: 16px; margin-top: 18px; }

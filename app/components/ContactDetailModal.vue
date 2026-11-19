@@ -156,6 +156,54 @@ async function removeLog(log: FollowUpLog) {
   }
 }
 
+// ── 單筆紀錄 inline 編輯（跟進日期／跟進內容）───────────────────
+// 點日期或內容進入編輯：Enter／離開焦點儲存、Esc 放棄（比照名單頁 inline 編輯互動）。
+const logEditKey = ref<string | null>(null) // `${field}-${logId}`
+const logEditValue = ref('')
+
+type LogField = 'date' | 'content'
+
+function startLogEdit(log: FollowUpLog, field: LogField) {
+  logEditKey.value = `${field}-${log.id}`
+  logEditValue.value = field === 'date' ? log.date : log.content ?? ''
+  void nextTick(() => {
+    const input = document.querySelector<HTMLInputElement>(`input[data-log-edit="${logEditKey.value}"]`)
+    input?.focus()
+    if (field === 'content') input?.select()
+  })
+}
+
+async function commitLogEdit(log: FollowUpLog, field: LogField) {
+  // Esc 已放棄或焦點跳去另一欄編輯時（key 已換）不重複儲存
+  if (logEditKey.value !== `${field}-${log.id}`) return
+  logEditKey.value = null
+  const v = logEditValue.value.trim()
+  const current = field === 'date' ? log.date : log.content ?? ''
+  if (v === current || (field === 'date' && !v)) return // 未變動；日期欄不可清空
+  try {
+    await api(`/api/contacts/${contact.value?.id}/logs/${log.id}`, {
+      method: 'PATCH',
+      body: { [field]: field === 'content' ? v || null : v }
+    })
+    refreshLogs() // 改日期會改變時間軸排序，一律重抓
+    if (field === 'date') emit('refresh') // 後端回算了 last/nextFollowUp，讓清單同步重抓
+  } catch (err: unknown) {
+    flash(`編輯跟進紀錄失敗：${(err as Error)?.message}`, { error: true })
+  }
+}
+
+function cancelLogEdit() {
+  const key = logEditKey.value
+  logEditKey.value = null
+  // Esc 放棄後把焦點還給原來的編輯鈕，鍵盤操作不斷線
+  void nextTick(() => document.querySelector<HTMLButtonElement>(`button[data-log-edit-target="${key}"]`)?.focus())
+}
+
+function onLogEditKeydown(e: KeyboardEvent) {
+  if (e.key === 'Enter') (e.target as HTMLInputElement).blur()
+  else if (e.key === 'Escape') cancelLogEdit()
+}
+
 // 選項清單
 const { data: locations, refresh: refreshLocations } = useFetch('/api/contact-locations', { default: () => [] })
 
@@ -461,15 +509,60 @@ const levelItems = LEVEL_OPTIONS.map(v => ({ label: v, value: v }))
             :key="log.id"
             class="log-item"
           >
-            <RBadge tone="gray">
-              {{ log.date }}
+            <template v-if="logEditKey === `date-${log.id}`">
+              <input
+                v-model="logEditValue"
+                class="cell-input log-date-input"
+                type="date"
+                :data-log-edit="`date-${log.id}`"
+                aria-label="編輯跟進日期"
+                @blur="commitLogEdit(log, 'date')"
+                @keydown="onLogEditKeydown"
+              >
+            </template>
+            <RBadge
+              v-else
+              tone="gray"
+            >
+              <button
+                type="button"
+                class="cell-edit log-date-edit"
+                :data-log-edit-target="`date-${log.id}`"
+                title="點擊編輯跟進日期"
+                :aria-label="`編輯 ${log.date} 這筆跟進紀錄的日期`"
+                @click="startLogEdit(log, 'date')"
+              >
+                {{ log.date }}
+              </button>
             </RBadge>
             <div class="log-item__body">
               <p class="log-ago">
                 {{ timeAgo(log.date) }}
               </p>
-              <p class="log-content">
-                {{ log.content || '—' }}
+              <template v-if="logEditKey === `content-${log.id}`">
+                <input
+                  v-model="logEditValue"
+                  class="cell-input log-content-input"
+                  :data-log-edit="`content-${log.id}`"
+                  aria-label="編輯跟進內容"
+                  @blur="commitLogEdit(log, 'content')"
+                  @keydown="onLogEditKeydown"
+                >
+              </template>
+              <p
+                v-else
+                class="log-content"
+              >
+                <button
+                  type="button"
+                  class="cell-edit log-content-edit"
+                  :data-log-edit-target="`content-${log.id}`"
+                  title="點擊編輯跟進內容"
+                  :aria-label="`編輯 ${log.date} 這筆跟進紀錄的內容`"
+                  @click="startLogEdit(log, 'content')"
+                >
+                  {{ log.content || '—' }}
+                </button>
               </p>
             </div>
             <button

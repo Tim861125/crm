@@ -148,6 +148,62 @@ describe('/api/contacts', () => {
     expect(me.nextFollowUp).toBeNull()
   })
 
+  it('PATCH 單筆跟進紀錄內容 → 只改內容，日期與最後跟進日不動', async () => {
+    const c = await $fetch<Contact>('/api/contacts', { method: 'POST', body: { name: '編輯內容對象', followUpFreq: '一週一次' } })
+    const log = await $fetch<Log>(`/api/contacts/${c.id}/logs`, { method: 'POST', body: { date: T, content: '原始內容' } })
+
+    const updated = await $fetch<Log>(`/api/contacts/${c.id}/logs/${log.id}`, { method: 'PATCH', body: { content: '改後內容' } })
+    expect(updated.content).toBe('改後內容')
+
+    const logs = await $fetch<Log[]>(`/api/contacts/${c.id}/logs`)
+    expect(logs[0].content).toBe('改後內容')
+    expect(logs[0].date).toBe(T)
+    const me = (await $fetch<Contact[]>('/api/contacts')).find(x => x.id === c.id)!
+    expect(me.lastFollowUp).toBe(T)
+    expect(me.nextFollowUp).toBe('2026-11-14')
+  })
+
+  it('PATCH 單筆跟進紀錄日期 → 以剩餘紀錄最新日期重算 last/next', async () => {
+    const c = await $fetch<Contact>('/api/contacts', { method: 'POST', body: { name: '編輯日期對象', followUpFreq: '一週一次' } })
+    await $fetch(`/api/contacts/${c.id}/logs`, { method: 'POST', body: { date: '2026-11-01', content: null } })
+    await $fetch(`/api/contacts/${c.id}/logs`, { method: 'POST', body: { date: '2026-11-07', content: null } })
+
+    // 最新一筆改晚 → last/next 跟著往後
+    const logs = await $fetch<Log[]>(`/api/contacts/${c.id}/logs`)
+    const latest = logs.find(l => l.date === '2026-11-07')!
+    const movedLater = await $fetch<Log>(`/api/contacts/${c.id}/logs/${latest.id}`, { method: 'PATCH', body: { date: '2026-11-10', content: '補記' } })
+    expect(movedLater.date).toBe('2026-11-10')
+    expect(movedLater.content).toBe('補記')
+    let me = (await $fetch<Contact[]>('/api/contacts')).find(x => x.id === c.id)!
+    expect(me.lastFollowUp).toBe('2026-11-10')
+    expect(me.nextFollowUp).toBe('2026-11-17')
+
+    // 同一筆改回比 11-01 更早 → 以剩下的 11-01 回算
+    await $fetch(`/api/contacts/${c.id}/logs/${latest.id}`, { method: 'PATCH', body: { date: '2026-10-28' } })
+    me = (await $fetch<Contact[]>('/api/contacts')).find(x => x.id === c.id)!
+    expect(me.lastFollowUp).toBe('2026-11-01')
+    expect(me.nextFollowUp).toBe('2026-11-08')
+  })
+
+  it('PATCH 單筆跟進紀錄：id 或日期格式不正確 → 400', async () => {
+    const c = await $fetch<Contact>('/api/contacts', { method: 'POST', body: { name: '驗證對象' } })
+    const log = await $fetch<Log>(`/api/contacts/${c.id}/logs`, { method: 'POST', body: { date: T, content: null } })
+
+    expect(await statusCodeOf($fetch(`/api/contacts/${c.id}/logs/abc`, { method: 'PATCH', body: { content: 'x' } }))).toBe(400)
+    expect(await statusCodeOf($fetch(`/api/contacts/${c.id}/logs/${log.id}`, { method: 'PATCH', body: { date: '2026/11/07' } }))).toBe(400)
+  })
+
+  it('PATCH 單筆跟進紀錄：紀錄不存在或屬於別人名單 → 404', async () => {
+    const owner = await $fetch<Contact>('/api/contacts', { method: 'POST', body: { name: '紀錄持有者' } })
+    const thief = await $fetch<Contact>('/api/contacts', { method: 'POST', body: { name: '亂改的人' } })
+    const log = await $fetch<Log>(`/api/contacts/${owner.id}/logs`, { method: 'POST', body: { date: T, content: '我的紀錄' } })
+
+    expect(await statusCodeOf($fetch(`/api/contacts/${owner.id}/logs/999999`, { method: 'PATCH', body: { content: 'x' } }))).toBe(404)
+    expect(await statusCodeOf($fetch(`/api/contacts/${thief.id}/logs/${log.id}`, { method: 'PATCH', body: { content: 'x' } }))).toBe(404)
+    const logs = await $fetch<Log[]>(`/api/contacts/${owner.id}/logs`)
+    expect(logs[0].content).toBe('我的紀錄')
+  })
+
   it('刪除名單 → 跟進紀錄與每日任務跟著刪', async () => {
     const victim = await $fetch<Contact>('/api/contacts', { method: 'POST', body: { name: '可刪除' } })
     await $fetch('/api/prospects', { method: 'POST', body: { section: 'develop', contactId: victim.id } })
