@@ -16,7 +16,7 @@ export default defineEventHandler(async (event) => {
       friendOf: data.friendOf || null,
       devPartner: data.devPartner || null,
       goal: data.goal || null,
-      info: data.info || null,
+      note: data.note || null,
       level: data.level || null,
       status: data.status || null
       // createdAt／updatedAt 不由端點給：schema 的 $defaultFn 會在 insert 時補上

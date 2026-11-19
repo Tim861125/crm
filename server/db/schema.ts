@@ -25,8 +25,8 @@ export const contacts = sqliteTable('contacts', {
   devPartner: text('dev_partner'),
   // 目標（開發名單）：這位要達成的目標（選項見 goal_options）
   goal: text('goal'),
-  // Info（開發名單）：新人資訊＋原「備註」欄（note）合併於此
-  info: text('info'),
+  // Note（開發名單）：新人資訊＋原「備註」內容（曾在 0004 合併後改名 info，現改回 note）
+  note: text('note'),
   // 等級：SSR / SR / R（開發名單）
   level: text('level'),
   // 狀態（織網表）

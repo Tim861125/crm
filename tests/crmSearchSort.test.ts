@@ -10,7 +10,7 @@ const mk = (over: Partial<Contact> & { id: number, name: string }): Contact => (
   contact: null,
   friendOf: null,
   devPartner: null,
-  info: null,
+  note: null,
   level: null,
   status: null,
   followUpFreq: null,

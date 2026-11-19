@@ -14,7 +14,7 @@ export interface Contact {
   devPartner: string | null
   // 目標：這位要達成的目標（選項見 goal_options 表）
   goal: string | null
-  info: string | null
+  note: string | null
   // 等級：SSR / SR / R
   level: string | null
   // 狀態（織網表）

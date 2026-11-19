@@ -24,7 +24,7 @@ export default defineEventHandler(async (event) => {
   if ('friendOf' in data) patch.friendOf = data.friendOf || null
   if ('devPartner' in data) patch.devPartner = data.devPartner || null
   if ('goal' in data) patch.goal = data.goal || null
-  if ('info' in data) patch.info = data.info || null
+  if ('note' in data) patch.note = data.note || null
   if ('status' in data) patch.status = data.status || null
   if ('contact' in data) patch.contact = data.contact || null
 

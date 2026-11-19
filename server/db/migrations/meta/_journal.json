@@ -50,6 +50,13 @@
       "when": 1795062835979,
       "tag": "0006_awesome_talos",
       "breakpoints": true
+    },
+    {
+      "idx": 7,
+      "version": "6",
+      "when": 1795075663480,
+      "tag": "0007_lucky_goliath",
+      "breakpoints": true
     }
   ]
 }

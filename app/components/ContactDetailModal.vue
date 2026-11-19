@@ -34,7 +34,7 @@ const EDITABLE_FIELDS = [
   'friendOf',
   'devPartner',
   'goal',
-  'info',
+  'note',
   'level',
   'status',
   'followUpFreq',
@@ -406,9 +406,9 @@ const levelItems = LEVEL_OPTIONS.map(v => ({ label: v, value: v }))
         </label>
 
         <label class="span-2">
-          <span>Info</span>
+          <span>Note</span>
           <textarea
-            v-model="form.info"
+            v-model="form.note"
             rows="2"
           />
         </label>

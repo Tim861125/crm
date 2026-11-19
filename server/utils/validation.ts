@@ -27,7 +27,7 @@ export const contactInputSchema = z.object({
   friendOf: z.string().trim().nullish(),
   devPartner: z.string().trim().nullish(),
   goal: z.string().trim().nullish(),
-  info: z.string().trim().nullish(),
+  note: z.string().trim().nullish(),
   level: z.enum(PROSPECT_LEVELS).or(z.literal('')).nullish(),
   status: z.string().trim().nullish(),
   followUpFreq: followUpFreq.or(z.literal('')).nullish(),
