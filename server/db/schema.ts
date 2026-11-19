@@ -89,6 +89,32 @@ export const contactMethods = sqliteTable('contact_methods', {
   userIdIdx: index('contact_methods_user_id_idx').on(table.userId)
 }))
 
+// 名單「誰的朋友」選項（可增／刪；note modal 下拉用，見 ContactDetailModal）
+export const friendOfOptions = sqliteTable('friend_of_options', {
+  id: integer('id').primaryKey({ autoIncrement: true }),
+  userId: integer('user_id'),
+  // 介紹人／窗口姓名
+  label: text('label').notNull(),
+  createdAt: integer('created_at')
+    .notNull()
+    .$defaultFn(() => Math.floor(Date.now() / 1000))
+}, table => ({
+  userIdIdx: index('friend_of_options_user_id_idx').on(table.userId)
+}))
+
+// 名單「開發夥伴」選項（可增／刪；與 friend_of_options 同款）
+export const devPartnerOptions = sqliteTable('dev_partner_options', {
+  id: integer('id').primaryKey({ autoIncrement: true }),
+  userId: integer('user_id'),
+  // 一起開發的夥伴姓名
+  label: text('label').notNull(),
+  createdAt: integer('created_at')
+    .notNull()
+    .$defaultFn(() => Math.floor(Date.now() / 1000))
+}, table => ({
+  userIdIdx: index('dev_partner_options_user_id_idx').on(table.userId)
+}))
+
 // 每日任務（個人名單表）：四個區塊共用一張表，以 section 區分
 //   develop=開發名單 / reserve=預備名單 / five=五人名單 / network=織網表
 // 採「先建立空白列，再 inline 逐欄填寫」的表單式操作，故除 section 外欄位皆可留空。

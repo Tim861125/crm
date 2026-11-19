@@ -40,6 +40,22 @@ export interface ContactMethod {
   createdAt: number
 }
 
+// 「誰的朋友」選項（對應 friend_of_options 表；note modal 下拉用）
+export interface FriendOfOption {
+  id: number
+  userId: number | null
+  label: string
+  createdAt: number
+}
+
+// 「開發夥伴」選項（對應 dev_partner_options 表；與 FriendOfOption 同款）
+export interface DevPartnerOption {
+  id: number
+  userId: number | null
+  label: string
+  createdAt: number
+}
+
 // 進度階段型別（對應後端 contact_stages 表）
 export interface ContactStage {
   id: number

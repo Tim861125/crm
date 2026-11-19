@@ -118,6 +118,8 @@ watch(open, (o) => {
     // 才看得到在名單頁編輯下拉裡剛新增的地點／聯絡方式
     refreshLocations()
     refreshMethods()
+    refreshFriendOfs()
+    refreshDevPartners()
   }
 })
 
@@ -202,6 +204,53 @@ async function deleteMethod(label: string) {
   }
 }
 
+// 誰的朋友／開發夥伴欄選項（同地點模式：「＋ 新增」建檔＋選項右緣 × 刪除）
+const { data: friendOfs, refresh: refreshFriendOfs } = useFetch('/api/friend-of-options', { default: () => [] })
+const friendOfLabels = computed(() => (friendOfs.value ?? []).map((o: FriendOfOption) => o.label))
+
+async function createFriendOf(label: string) {
+  try {
+    await api('/api/friend-of-options', { method: 'POST', body: { label } })
+    await refreshFriendOfs()
+  } catch (err: unknown) {
+    flash(`新增「誰的朋友」選項失敗：${(err as Error)?.message}`, { error: true })
+  }
+}
+
+async function deleteFriendOf(label: string) {
+  const hit = (friendOfs.value ?? []).find((o: FriendOfOption) => o.label === label)
+  if (!hit) return
+  try {
+    await api(`/api/friend-of-options/${hit.id}`, { method: 'DELETE' })
+    await refreshFriendOfs()
+  } catch (err: unknown) {
+    flash(`刪除「誰的朋友」選項失敗：${(err as Error)?.message}`, { error: true })
+  }
+}
+
+const { data: devPartners, refresh: refreshDevPartners } = useFetch('/api/dev-partner-options', { default: () => [] })
+const devPartnerLabels = computed(() => (devPartners.value ?? []).map((o: DevPartnerOption) => o.label))
+
+async function createDevPartner(label: string) {
+  try {
+    await api('/api/dev-partner-options', { method: 'POST', body: { label } })
+    await refreshDevPartners()
+  } catch (err: unknown) {
+    flash(`新增「開發夥伴」選項失敗：${(err as Error)?.message}`, { error: true })
+  }
+}
+
+async function deleteDevPartner(label: string) {
+  const hit = (devPartners.value ?? []).find((o: DevPartnerOption) => o.label === label)
+  if (!hit) return
+  try {
+    await api(`/api/dev-partner-options/${hit.id}`, { method: 'DELETE' })
+    await refreshDevPartners()
+  } catch (err: unknown) {
+    flash(`刪除「開發夥伴」選項失敗：${(err as Error)?.message}`, { error: true })
+  }
+}
+
 const freqItems = FOLLOW_UP_FREQ_OPTIONS.map(v => ({ label: v, value: v }))
 const levelItems = LEVEL_OPTIONS.map(v => ({ label: v, value: v }))
 </script>
@@ -252,12 +301,36 @@ const levelItems = LEVEL_OPTIONS.map(v => ({ label: v, value: v }))
 
         <label>
           <span>誰的朋友</span>
-          <RInput v-model="form.friendOf" />
+          <RCombobox
+            v-model="form.friendOf"
+            :options="friendOfLabels"
+            empty-text="沒有符合的名字，輸入後可選下方新增"
+            creatable
+            deletable
+            create-label="新增名字（先輸入姓名）"
+            placeholder="誰的朋友…"
+            aria-label="編輯誰的朋友"
+            :open-on-focus="false"
+            @create="createFriendOf"
+            @delete="deleteFriendOf"
+          />
         </label>
 
         <label>
           <span>開發夥伴</span>
-          <RInput v-model="form.devPartner" />
+          <RCombobox
+            v-model="form.devPartner"
+            :options="devPartnerLabels"
+            empty-text="沒有符合的名字，輸入後可選下方新增"
+            creatable
+            deletable
+            create-label="新增名字（先輸入姓名）"
+            placeholder="開發夥伴…"
+            aria-label="編輯開發夥伴"
+            :open-on-focus="false"
+            @create="createDevPartner"
+            @delete="deleteDevPartner"
+          />
         </label>
 
         <label>

@@ -223,6 +223,24 @@ describe('/api/contact-methods', () => {
   })
 })
 
+// 「誰的朋友／開發夥伴」選項（note modal 下拉）：兩條路線行為相同
+for (const route of ['/api/friend-of-options', '/api/dev-partner-options']) {
+  describe(route, () => {
+    it('選項預設為空，可新增／刪除', async () => {
+      expect(await $fetch<unknown[]>(route)).toEqual([])
+      const added = await $fetch<{ id: number, label: string }>(route, { method: 'POST', body: { label: '小明' } })
+      expect((await $fetch<{ label: string }[]>(route)).map(o => o.label)).toEqual(['小明'])
+      await $fetch(`${route}/${added.id}`, { method: 'DELETE' })
+      expect(await $fetch<unknown[]>(route)).toEqual([])
+      expect(await statusCodeOf($fetch(`${route}/${added.id}`, { method: 'DELETE' }))).toBe(404)
+    })
+
+    it('空名稱被擋 400', async () => {
+      expect(await statusCodeOf($fetch(route, { method: 'POST', body: { label: '  ' } }))).toBe(400)
+    })
+  })
+}
+
 describe('/api/prospects 每日任務', () => {
   const T = '2026-11-07'
   let contact: Contact

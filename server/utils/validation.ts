@@ -80,6 +80,20 @@ export const contactMethodInputSchema = z.object({
 
 export type ContactMethodInput = z.infer<typeof contactMethodInputSchema>
 
+// 「誰的朋友」選項（note modal 下拉用）
+export const friendOfOptionInputSchema = z.object({
+  label: z.string().trim().min(1, '請輸入名字')
+})
+
+export type FriendOfOptionInput = z.infer<typeof friendOfOptionInputSchema>
+
+// 「開發夥伴」選項（note modal 下拉用）
+export const devPartnerOptionInputSchema = z.object({
+  label: z.string().trim().min(1, '請輸入名字')
+})
+
+export type DevPartnerOptionInput = z.infer<typeof devPartnerOptionInputSchema>
+
 // 各區塊 & 等級允許值（每日任務 prospects 用）
 export const PROSPECT_SECTIONS = ['develop', 'reserve', 'five', 'network'] as const
 
