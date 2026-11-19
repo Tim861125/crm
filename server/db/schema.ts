@@ -23,7 +23,7 @@ export const contacts = sqliteTable('contacts', {
   friendOf: text('friend_of'),
   // 一起開發的夥伴姓名（開發名單）
   devPartner: text('dev_partner'),
-  // 新人資訊，自由文字備註（開發名單）
+  // Info（開發名單）：新人資訊＋原「備註」欄（note）合併於此
   info: text('info'),
   // 等級：SSR / SR / R（開發名單）
   level: text('level'),
@@ -34,7 +34,6 @@ export const contacts = sqliteTable('contacts', {
   // 最後 / 下次跟進日（"YYYY-MM-DD"）；nextFollowUp 由 lastFollowUp + 頻率自動算出
   lastFollowUp: text('last_follow_up'),
   nextFollowUp: text('next_follow_up'),
-  note: text('note'),
   createdAt: integer('created_at')
     .notNull()
     .$defaultFn(() => Math.floor(Date.now() / 1000)),

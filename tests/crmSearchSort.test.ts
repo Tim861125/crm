@@ -16,7 +16,6 @@ const mk = (over: Partial<Contact> & { id: number, name: string }): Contact => (
   followUpFreq: null,
   lastFollowUp: null,
   nextFollowUp: null,
-  note: null,
   createdAt: 0,
   updatedAt: 0,
   ...over

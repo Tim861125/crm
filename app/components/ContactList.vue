@@ -112,15 +112,15 @@ async function patchContact(c: Contact, patch: Partial<Contact> & Record<string,
   }
 }
 
-// ── inline 編輯儲存格（姓名／聯絡方式／地點／備註）─────────────
+// ── inline 編輯儲存格（姓名／聯絡方式／地點／Info）─────────────
 const editingKey = ref<string | null>(null)
 const editingValue = ref('')
 
-type EditableField = 'name' | 'contact' | 'location' | 'note'
+type EditableField = 'name' | 'contact' | 'location' | 'info'
 
 function startEdit(c: Contact, field: EditableField) {
   editingKey.value = `${field}-${c.id}`
-  editingValue.value = { name: c.name, contact: c.contact, location: c.location, note: c.note }[field] ?? ''
+  editingValue.value = { name: c.name, contact: c.contact, location: c.location, info: c.info }[field] ?? ''
   // 進入編輯後聚焦輸入框（巨集按新增時直接打字；鍵盤操作不需再點一次）
   void nextTick(() => {
     const input = document.querySelector<HTMLInputElement>(`input.cell-input[data-edit="${editingKey.value}"]`)
@@ -230,9 +230,9 @@ function onEditKeydown(e: KeyboardEvent) {
           <col><!-- 進度：吃掉剩餘寬度 -->
           <col style="width: 110px">
           <col style="width: 160px">
-          <col style="width: 210px"><!-- 備註：長文字折行後以兩行截斷（見 .cell-note），完整內容放 title -->
+          <col style="width: 210px"><!-- Info：長文字折行後以兩行截斷（見 .cell-note），完整內容放 title -->
           <col style="width: 72px"><!-- 跟進：17px 中文字兩字＋padding 24 ≒ 58，低於 58 時「跟進」會逐字換行變直排 -->
-          <col style="width: 180px"><!-- 動作：note 鈕(≒78)＋icon 刪除鈕(≒42)＋間距＋td padding 24 ≒ 148，保留 180 緩衝，少於內容寬度時刪除鈕會被 .list-scroll 裁右缘 -->
+          <col style="width: 180px"><!-- 動作：Info 鈕(≒78)＋icon 刪除鈕(≒42)＋間距＋td padding 24 ≒ 148，保留 180 緩衝，少於內容寬度時刪除鈕會被 .list-scroll 裁右缘 -->
         </colgroup>
         <thead>
           <tr>
@@ -270,7 +270,7 @@ function onEditKeydown(e: KeyboardEvent) {
             </th>
             <th>地點</th>
             <th>聯絡</th>
-            <th>備註</th>
+            <th>Info</th>
             <th>跟進</th>
             <th />
           </tr>
@@ -404,15 +404,15 @@ function onEditKeydown(e: KeyboardEvent) {
               </template>
             </td>
 
-            <!-- 備註 -->
+            <!-- Info -->
             <td>
-              <template v-if="editingKey === `note-${c.id}`">
+              <template v-if="editingKey === `info-${c.id}`">
                 <input
                   v-model="editingValue"
                   class="cell-input"
-                  :data-edit="`note-${c.id}`"
-                  aria-label="編輯備註"
-                  @blur="commitEdit(c, 'note')"
+                  :data-edit="`info-${c.id}`"
+                  aria-label="編輯 Info"
+                  @blur="commitEdit(c, 'info')"
                   @keydown="onEditKeydown"
                 >
               </template>
@@ -421,12 +421,12 @@ function onEditKeydown(e: KeyboardEvent) {
                   <button
                     type="button"
                     class="cell-edit cell-edit--plain"
-                    :data-edit-target="`note-${c.id}`"
-                    :aria-label="`編輯「${c.name}」的備註：${c.note ?? '未填寫'}`"
-                    :title="c.note || '點擊編輯備註'"
-                    @click="startEdit(c, 'note')"
+                    :data-edit-target="`info-${c.id}`"
+                    :aria-label="`編輯「${c.name}」的 Info：${c.info ?? '未填寫'}`"
+                    :title="c.info || '點擊編輯 Info'"
+                    @click="startEdit(c, 'info')"
                   >
-                    {{ c.note ?? '－' }}
+                    {{ c.info ?? '－' }}
                   </button>
                 </span>
               </template>
@@ -440,11 +440,11 @@ function onEditKeydown(e: KeyboardEvent) {
             <!-- 動作 -->
             <td style="white-space: nowrap">
               <RButton
-                title="note"
-                :aria-label="`開啟「${c.name}」的 note`"
+                title="Info"
+                :aria-label="`開啟「${c.name}」的明細`"
                 @click="detailContact = c"
               >
-                note
+                Info
               </RButton>
               <RButton
                 class="r-button--icon"

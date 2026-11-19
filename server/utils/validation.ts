@@ -30,8 +30,7 @@ export const contactInputSchema = z.object({
   level: z.enum(PROSPECT_LEVELS).or(z.literal('')).nullish(),
   status: z.string().trim().nullish(),
   followUpFreq: followUpFreq.or(z.literal('')).nullish(),
-  lastFollowUp: date.or(z.literal('')).nullish(),
-  note: z.string().trim().nullish()
+  lastFollowUp: date.or(z.literal('')).nullish()
 })
 
 export type ContactInput = z.infer<typeof contactInputSchema>

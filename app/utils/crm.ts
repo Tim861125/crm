@@ -20,7 +20,6 @@ export interface Contact {
   followUpFreq: string | null
   lastFollowUp: string | null
   nextFollowUp: string | null
-  note: string | null
   createdAt: number
   updatedAt: number
 }

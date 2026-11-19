@@ -25,7 +25,6 @@ export default defineEventHandler(async (event) => {
   if ('devPartner' in data) patch.devPartner = data.devPartner || null
   if ('info' in data) patch.info = data.info || null
   if ('status' in data) patch.status = data.status || null
-  if ('note' in data) patch.note = data.note || null
   if ('contact' in data) patch.contact = data.contact || null
 
   // 頻率或最後跟進日有變動 → 重算下次跟進日

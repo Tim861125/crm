@@ -286,7 +286,7 @@ html.dark .stage-chip.is-done { color: var(--paper); }
 .cell-name { display: flex; align-items: baseline; flex-wrap: nowrap; min-width: 0; }
 .cell-name .cell-edit { min-width: 0; overflow-wrap: anywhere; }
 .list-scroll .r-badge { margin-left: 6px; white-space: nowrap; flex: none; }
-/* 備註欄：自由文字可能很長，折行後限兩行截斷，避免單筆備註拉高整個表格列高；
+/* Info 欄：自由文字可能很長，折行後限兩行截斷，避免單筆內容拉高整個表格列高；
    完整內容放在按鈕 title 上，懸浮／焦點時可見 */
 .cell-note { display: block; min-width: 0; }
 .cell-note .cell-edit { display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; text-align: left; }

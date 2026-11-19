@@ -37,8 +37,7 @@ const EDITABLE_FIELDS = [
   'level',
   'status',
   'followUpFreq',
-  'lastFollowUp',
-  'note'
+  'lastFollowUp'
 ] as const
 
 // 表單草稿：每次「打開 modal」或「換人」時重置為當前資料（比照舊版 open watch 行為）
@@ -291,17 +290,9 @@ const levelItems = LEVEL_OPTIONS.map(v => ({ label: v, value: v }))
         </label>
 
         <label class="span-2">
-          <span>新人資訊</span>
+          <span>Info</span>
           <textarea
             v-model="form.info"
-            rows="2"
-          />
-        </label>
-
-        <label class="span-2">
-          <span>備註</span>
-          <textarea
-            v-model="form.note"
             rows="2"
           />
         </label>
