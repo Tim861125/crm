@@ -78,10 +78,15 @@ button:disabled { cursor: not-allowed; opacity: .55; }
 .rough-frame__content { position: relative; min-width: 0; }
 
 .r-button { display: inline-flex; justify-content: center; align-items: center; min-height: 44px; padding: 8px 20px; border: 0; background: transparent; font-weight: 700; }
-.r-button__frame { display: inline-flex; }
+/* vertical-align: middle：inline-flex 預設 baseline 對齊，文字鈕（文字基線）與 icon 鈕（svg 底緣）
+   基準不同會錯開；改 middle 讓相鄰 RButton 以垂直中线对齐 */
+.r-button__frame { display: inline-flex; vertical-align: middle; }
 .r-button--primary { color: #fff; }
 .r-button--default { color: var(--ink); }
 .r-button--danger { color: var(--danger-deep); }
+/* icon-only RButton：壓縮 padding 讓手繪框貼著圖示（min-height 仍由 .r-button 守住觸控目標） */
+.r-button--icon { padding: 8px 12px; }
+.r-button--icon svg { display: block; width: 18px; height: 18px; }
 .r-input__frame, .r-select__frame { display: block; width: 100%; }
 .r-input { display: block; width: 100%; min-height: 46px; padding: 9px 12px; border: 0; background: transparent; outline-offset: 2px; }
 .r-input::placeholder { color: var(--muted); }

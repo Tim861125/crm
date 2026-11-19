@@ -158,7 +158,7 @@ await openCellEditor()
 
 // 5. 明細 modal：位置欄 combobox 可新增（TMP2 已由名單頁建好；這裡開下拉確認同步）
 {
-  await page.click(`${rowSel} button[title="明細"]`)
+  await page.click(`${rowSel} button[title="note"]`)
   await sleep(900)
   const combo = '.r-dialog input[aria-label="編輯位置"]'
   await page.click(combo)

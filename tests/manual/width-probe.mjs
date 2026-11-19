@@ -92,7 +92,7 @@ await probePage('總名單 /')
 
 // 明細 modal
 await probePage('明細 modal', async () => {
-  await page.click('button[aria-label$="的明細"]')
+  await page.click('button[aria-label$="的 note"]')
   await sleep(1000)
 })
 await page.keyboard.press('Escape')
@@ -123,7 +123,7 @@ await page.goto(APP, { waitUntil: 'networkidle0', timeout: 30000 })
 await sleep(800)
 await probePage('【窄螢幕】總名單 /')
 await probePage('【窄螢幕】明細 modal', async () => {
-  await page.click('button[aria-label$="的明細"]')
+  await page.click('button[aria-label$="的 note"]')
   await sleep(1000)
 })
 

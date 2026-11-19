@@ -21,7 +21,7 @@ await page.goto(APP, { waitUntil: 'networkidle0', timeout: 30000 })
 await new Promise(r => setTimeout(r, 800))
 
 // 1) 開明細 modal
-await page.click('button[title="明細"]')
+await page.click('button[title="note"]')
 await new Promise(r => setTimeout(r, 1200))
 const text = await page.evaluate(() => document.body.innerText)
 log.push(`[開 modal] ${text.includes('跟進紀錄') ? '成功' : '失敗'}`)

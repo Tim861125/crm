@@ -232,7 +232,7 @@ function onEditKeydown(e: KeyboardEvent) {
           <col style="width: 160px">
           <col style="width: 210px"><!-- 備註：長文字折行後以兩行截斷（見 .cell-note），完整內容放 title -->
           <col style="width: 72px"><!-- 跟進：17px 中文字兩字＋padding 24 ≒ 58，低於 58 時「跟進」會逐字換行變直排 -->
-          <col style="width: 180px"><!-- 動作：两颗 RButton（74×2）＋ td padding 24 ＝ 172，少于此删除钮会被 .list-scroll 裁右缘 -->
+          <col style="width: 180px"><!-- 動作：note 鈕(≒78)＋icon 刪除鈕(≒42)＋間距＋td padding 24 ≒ 148，保留 180 緩衝，少於內容寬度時刪除鈕會被 .list-scroll 裁右缘 -->
         </colgroup>
         <thead>
           <tr>
@@ -440,18 +440,45 @@ function onEditKeydown(e: KeyboardEvent) {
             <!-- 動作 -->
             <td style="white-space: nowrap">
               <RButton
-                title="明細"
-                :aria-label="`開啟「${c.name}」的明細`"
+                title="note"
+                :aria-label="`開啟「${c.name}」的 note`"
                 @click="detailContact = c"
               >
-                明細
+                note
               </RButton>
               <RButton
+                class="r-button--icon"
                 variant="danger"
+                title="刪除"
                 :aria-label="`刪除「${c.name}」`"
                 @click="removeContact(c)"
               >
-                刪除
+                <!-- 手繪感垃圾桶（比照表頭齒輪的純描線風格） -->
+                <svg
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  stroke="currentColor"
+                  stroke-width="2"
+                  stroke-linecap="round"
+                  stroke-linejoin="round"
+                  aria-hidden="true"
+                >
+                  <path d="M3 6h18" />
+                  <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6" />
+                  <path d="M8 6V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2" />
+                  <line
+                    x1="10"
+                    x2="10"
+                    y1="11"
+                    y2="17"
+                  />
+                  <line
+                    x1="14"
+                    x2="14"
+                    y1="11"
+                    y2="17"
+                  />
+                </svg>
               </RButton>
             </td>
           </tr>

@@ -14,7 +14,7 @@ page.on('pageerror', e => errors.push(e.message))
 await page.goto(APP, { waitUntil: 'networkidle0', timeout: 30000 })
 await new Promise(r => setTimeout(r, 800))
 
-await page.click('button[title="明細"]')
+await page.click('button[title="note"]')
 await new Promise(r => setTimeout(r, 1000))
 
 // 「等級」下拉（以 label span 定位；欄位縮減後 combobox 序號不可靠）：

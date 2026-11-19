@@ -13,7 +13,7 @@ const page = await browser.newPage()
 await page.setViewport({ width: 1280, height: 900 })
 await page.goto(APP, { waitUntil: 'networkidle0', timeout: 30000 })
 await sleep(800)
-await page.click('button[title="明細"]')
+await page.click('button[title="note"]')
 await sleep(1200)
 
 const comboInfo = `
