@@ -355,7 +355,7 @@ html.dark .stage-chip.is-done { color: var(--paper); }
 /* 位置欄的 RCombobox：外貌靠齊同表单的 RInput／textarea（名单页则是靠 .cell-input 供框） */
 .detail-form .r-combo__anchor { min-width: 0; }
 .detail-form .r-combo { display: block; width: 100%; min-height: 46px; padding: 9px 12px; border: 1.5px solid rgb(var(--ink-rgb) / 40%); border-radius: 6px; background: transparent; }
-.detail-actions { text-align: center; margin-top: 18px; }
+.detail-actions { text-align: right; margin-top: 18px; }
 .logs-head { font-size: 1.15rem; margin: 24px 0 12px; }
 .log-form { display: flex; align-items: flex-end; gap: 10px; flex-wrap: wrap; margin-bottom: 14px; }
 .log-form .r-input__frame { width: auto; }

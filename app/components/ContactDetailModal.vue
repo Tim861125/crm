@@ -97,8 +97,8 @@ async function save() {
     const updated = await api<Contact>(`/api/contacts/${c.id}`, { method: 'PATCH', body })
     emit('refresh')
     flash(`已儲存「${updated.name}」`)
-    contact.value = updated
     baseline.value = { ...form.value } // 剛存過的內容不算未儲存變更
+    contact.value = null // 儲存成功即關閉明細 dialog（v-model null＝關閉）
   } catch (err: unknown) {
     flash(`儲存失敗：${(err as Error)?.message}`, { error: true })
   } finally {
@@ -469,16 +469,6 @@ const levelItems = LEVEL_OPTIONS.map(v => ({ label: v, value: v }))
         </label>
       </div>
 
-      <div class="detail-actions">
-        <RButton
-          variant="primary"
-          :disabled="saving"
-          @click="save"
-        >
-          {{ saving ? '儲存中…' : '儲存' }}
-        </RButton>
-      </div>
-
       <!-- 跟進紀錄時間軸 -->
       <div>
         <h3 class="logs-head">
@@ -589,6 +579,17 @@ const levelItems = LEVEL_OPTIONS.map(v => ({ label: v, value: v }))
             還沒有任何跟進紀錄。打完一通電話，記得來這裡記一筆 ✏️
           </li>
         </ol>
+      </div>
+
+      <!-- 儲存：固定在 dialog 末位＋右對齊＝右下角；儲存成功後關閉 dialog（見 save()） -->
+      <div class="detail-actions">
+        <RButton
+          variant="primary"
+          :disabled="saving"
+          @click="save"
+        >
+          {{ saving ? '儲存中…' : '儲存' }}
+        </RButton>
       </div>
     </div>
   </RDialog>
