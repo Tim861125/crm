@@ -121,6 +121,31 @@ export const prospectPatchSchema = z.object({
 
 export type ProspectPatch = z.infer<typeof prospectPatchSchema>
 
+// 制定計畫：新增／編輯（/plans 頁）。status 允許值見 schema 註解。
+export const PLAN_STATUSES = ['planning', 'active', 'done'] as const
+
+export const planInputSchema = z.object({
+  name: z.string().trim().min(1, '請輸入計畫名稱'),
+  insight: z.string().trim().nullish(),
+  method: z.string().trim().nullish(),
+  content: z.string().trim().nullish(),
+  audience: z.array(z.number().int()).default([]),
+  startDate: date.or(z.literal('')).nullish(),
+  endDate: date.or(z.literal('')).nullish(),
+  status: z.enum(PLAN_STATUSES).default('planning')
+})
+
+export type PlanInput = z.infer<typeof planInputSchema>
+
+// 部分更新：audience／status 同 contactPatch 的教訓——.partial() 不移除 .default()，
+// 未送欄位會被補成預設值，故覆寫成不帶 default 的 optional。
+export const planPatchSchema = planInputSchema.partial().extend({
+  audience: z.array(z.number().int()).optional(),
+  status: z.enum(PLAN_STATUSES).optional()
+})
+
+export type PlanPatch = z.infer<typeof planPatchSchema>
+
 // 跟進紀錄輸入驗證
 export const followUpLogSchema = z.object({
   date,

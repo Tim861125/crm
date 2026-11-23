@@ -373,3 +373,72 @@ describe('/api/prospects 每日任務', () => {
     expect(typeof row.contact.completedStages).toBe('object')
   })
 })
+
+interface PlanRow {
+  id: number
+  name: string
+  insight: string | null
+  method: string | null
+  content: string | null
+  audience: number[]
+  startDate: string | null
+  endDate: string | null
+  status: string
+}
+interface PlanWithStatsRow extends PlanRow {
+  stats: { audienceCount: number, reached: number, rate: number, coverage: number, stalled: number, silent14: number }
+}
+
+describe('/api/plans 制定計畫', () => {
+  let plan: PlanRow
+  let target: Contact
+
+  it('新建計畫：預設 status=planning，audience 存陣列', async () => {
+    target = await $fetch<Contact>('/api/contacts', { method: 'POST', body: { name: '廣告對象', contact: 'IG' } })
+    plan = await $fetch<PlanRow>('/api/plans', {
+      method: 'POST',
+      body: { name: '不讀不回重啟計畫', insight: '不讀不回', method: '發廣告', audience: [target.id], startDate: '2020-01-01' }
+    })
+    expect(plan.status).toBe('planning')
+    expect(plan.audience).toEqual([target.id])
+    expect(plan.endDate).toBe(null)
+  })
+
+  it('GET 附評估 stats：圈選、管道覆蓋、停擺、窗內已重新接觸', async () => {
+    // 記一筆今天的跟進紀錄（UTC 今日）→ 應落進 startDate=2020 起的覆核窗
+    const today = new Date().toISOString().slice(0, 10)
+    await $fetch(`/api/contacts/${target.id}/logs`, { method: 'POST', body: { date: today, content: '看到廣告回來了' } })
+    const rows = await $fetch<PlanWithStatsRow[]>('/api/plans')
+    const row = rows.find(r => r.id === plan.id)!
+    expect(row.stats.audienceCount).toBe(1)
+    expect(row.stats.coverage).toBe(1)
+    expect(row.stats.reached).toBe(1)
+    expect(row.stats.rate).toBe(100)
+  })
+
+  it('PATCH 狀態流轉與空字串清空日期', async () => {
+    const patched = await $fetch<PlanRow>(`/api/plans/${plan.id}`, { method: 'PATCH', body: { status: 'active', startDate: '' } })
+    expect(patched.status).toBe('active')
+    expect(patched.startDate).toBe(null)
+    // 未送欄位維持原值（zod partial 的 default 教訓）
+    expect(patched.audience).toEqual([target.id])
+    expect(patched.method).toBe('發廣告')
+  })
+
+  it('驗證：無名稱 → 400；非法 status → 400', async () => {
+    expect(await statusCodeOf($fetch('/api/plans', { method: 'POST', body: { name: '  ' } }))).toBe(400)
+    expect(await statusCodeOf($fetch('/api/plans', { method: 'POST', body: { name: 'x', status: 'unknown' } }))).toBe(400)
+  })
+
+  it('不存在的 id：PATCH/DELETE → 404', async () => {
+    expect(await statusCodeOf($fetch('/api/plans/999999', { method: 'PATCH', body: { status: 'done' } }))).toBe(404)
+    expect(await statusCodeOf($fetch('/api/plans/999999', { method: 'DELETE' }))).toBe(404)
+  })
+
+  it('刪除計畫：清單移除且不動名單', async () => {
+    await $fetch(`/api/plans/${plan.id}`, { method: 'DELETE' })
+    expect((await $fetch<PlanRow[]>('/api/plans')).some(r => r.id === plan.id)).toBe(false)
+    const kept = (await $fetch<Contact[]>('/api/contacts')).map(x => x.id)
+    expect(kept).toContain(target.id)
+  })
+})

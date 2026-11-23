@@ -4,6 +4,7 @@ import RButton from '../components/rough/RButton.vue'
 import RCombobox from '../components/rough/RCombobox.vue'
 import RDialog from '../components/rough/RDialog.vue'
 import RInput from '../components/rough/RInput.vue'
+import RDateInput from '../components/rough/RDateInput.vue'
 import RSelect from '../components/rough/RSelect.vue'
 import {
   api,
@@ -454,10 +455,7 @@ const levelItems = LEVEL_OPTIONS.map(v => ({ label: v, value: v }))
 
         <label>
           <span>最後跟進日</span>
-          <RInput
-            v-model="form.lastFollowUp"
-            type="date"
-          />
+          <RDateInput v-model="form.lastFollowUp" />
         </label>
 
         <label class="span-2">
@@ -480,9 +478,8 @@ const levelItems = LEVEL_OPTIONS.map(v => ({ label: v, value: v }))
           class="log-form"
           @submit.prevent="addLog"
         >
-          <RInput
+          <RDateInput
             v-model="logDate"
-            type="date"
             aria-label="跟進日期"
           />
           <div class="log-form__content">
@@ -507,15 +504,15 @@ const levelItems = LEVEL_OPTIONS.map(v => ({ label: v, value: v }))
             class="log-item"
           >
             <template v-if="logEditKey === `date-${log.id}`">
-              <input
+              <RDateInput
                 v-model="logEditValue"
-                class="cell-input log-date-input"
-                type="date"
+                cell
+                class="log-date-input"
                 :data-log-edit="`date-${log.id}`"
                 aria-label="編輯跟進日期"
                 @blur="commitLogEdit(log, 'date')"
                 @keydown="onLogEditKeydown"
-              >
+              />
             </template>
             <RBadge
               v-else

@@ -98,6 +98,28 @@ button:disabled { cursor: not-allowed; opacity: .55; }
 /* 手繪折角箭頭：開合旋轉 180°（只動 transform，不動尺寸，RoughFrame 繪製不受影響） */
 .r-select__chev { flex: none; width: 15px; height: 15px; color: var(--muted); transition: transform .18s var(--ease-out); }
 .r-select[data-state='open'] .r-select__chev { transform: rotate(180deg); }
+/* ── RDateInput（rough/RDateInput.vue）：原生 date 欄位的全手繪外觀 ──
+   RoughFrame 手繪框＋NaikaiFont 日期；原生日曆指示器透明化並拉滿整欄（點哪都開系統行事曆），
+   右側手繪日曆圖示純裝飾、不吃滑鼠事件（pointer-events: none，點擊由指示器接手）。 */
+.r-date__frame { border-radius: 10px; } /* 圓角讓 focus 底色不超出歪斜筆框 */
+.r-date__frame--cell { width: 150px; border-radius: 8px; }
+.r-date__field { position: relative; }
+.r-date { padding-right: 38px; }
+.r-date--cell { min-height: 34px; padding: 4px 30px 4px 8px; }
+/* focus 時微微染上螢光筆底色（呼應 RSelect 展開時的 trigger 色） */
+.r-date__frame:focus-within { background: color-mix(in srgb, var(--accent) 7%, transparent); }
+.r-date::-webkit-calendar-picker-indicator { position: absolute; inset: 0; width: auto; height: auto; opacity: 0; cursor: pointer; }
+/* 尚未選日：yyyy/mm/dd 範本以 placeholder 淡色呈現，不像已填值 */
+.r-date.is-empty::-webkit-datetime-edit { color: var(--muted); }
+/* 手繪日曆圖示（雙類別選擇器蓋過後出的 .icon-scribble 20px 預設） */
+.r-date__field .r-date__pick { position: absolute; right: 12px; top: 50%; transform: translateY(-50%); width: 17px; height: 17px; color: var(--muted); pointer-events: none; }
+.r-date__field--cell .r-date__pick { right: 9px; }
+/* Firefox 無 webkit 指示器、自繪日曆鈕已夠用：隱去手繪圖示與留位，避免兩顆日鈕擠在一起 */
+@supports not selector(::-webkit-calendar-picker-indicator) {
+  .r-date__pick { display: none; }
+  .r-date { padding-right: 12px; }
+  .r-date--cell { padding-right: 8px; }
+}
 /* ── 共用下拉面板（portalled 至 body，見 RSelect.vue／RCombobox.vue）──
    紙面卡片＋落影浮起；side-offset 10px 讓手繪框不與 trigger 框黏成雙線；超高時內部捲動 */
 .r-pop-menu { z-index: 60; outline: none; }
@@ -372,8 +394,80 @@ html.dark .stage-chip.is-done { color: var(--paper); }
 .log-date-input { width: 168px; }
 .log-content-input { display: block; width: 100%; }
 
-/* ── 管理階段／選項 modal ─────────────────────────────────── */
-.tab-panel { display: grid; gap: 16px; margin-top: 18px; }
+/* ── 制定計畫頁：視覺優先的計畫卡＋編輯表單 ─────────────────── */
+.icon-scribble { display: block; width: 20px; height: 20px; flex: none; }
+.plans-page { display: grid; gap: 26px; }
+.plan-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(min(100%, 420px), 1fr)); gap: 22px; }
+.plan-card__content { display: grid; gap: 14px; }
+.plan-card__head { display: flex; align-items: baseline; justify-content: space-between; gap: 10px; }
+.plan-card__title { margin: 0; font-size: 1.25rem; overflow-wrap: anywhere; }
+
+/* 現象→方法：圖示化晶片串流，取代整句文字 */
+.plan-thesis { margin: 0; display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
+.plan-chip { display: inline-flex; align-items: center; gap: 7px; padding: 6px 14px; border: 1.5px solid rgb(var(--ink-rgb) / 45%); border-radius: 999px; background: var(--chip); font-weight: 700; }
+.plan-chip--method { border-color: var(--accent-strong); color: var(--accent-strong); background: transparent; }
+.plan-chip--empty { color: var(--muted); border-style: dashed; font-weight: 400; }
+.plan-chip__icon { width: 17px; height: 17px; }
+.plan-thesis__arrow { color: var(--muted); width: 21px; height: 21px; }
+
+/* 圓環覆核率＋圖示數據格 */
+.plan-card__body { display: flex; align-items: center; gap: 20px; flex-wrap: wrap; }
+.plan-donut { position: relative; width: 106px; height: 106px; flex: none; display: grid; place-content: center; justify-items: center; text-align: center; transform: rotate(-1.5deg); }
+.plan-donut svg { position: absolute; inset: 0; width: 100%; height: 100%; overflow: visible; }
+.plan-donut__track { fill: none; stroke: rgb(var(--ink-rgb) / 30%); stroke-width: 6; stroke-dasharray: 0.5 7; stroke-linecap: round; }
+.plan-donut__value { fill: none; stroke: var(--accent-strong); stroke-width: 7; stroke-linecap: round; transform: rotate(-90deg); transform-origin: center; transition: stroke-dasharray .5s var(--ease-out); }
+.plan-donut__pct { font-size: 1.45rem; font-weight: 700; line-height: 1.15; font-variant-numeric: tabular-nums; }
+.plan-donut__frac { color: var(--muted); font-size: .8rem; font-variant-numeric: tabular-nums; }
+.plan-metrics { display: grid; grid-template-columns: repeat(auto-fit, minmax(86px, 1fr)); gap: 12px 16px; flex: 1; min-width: min(100%, 190px); }
+.plan-metric { display: grid; grid-template-columns: auto 1fr; grid-template-rows: auto auto; column-gap: 8px; align-items: center; color: var(--muted); }
+.plan-metric svg { grid-row: 1 / 3; width: 21px; height: 21px; }
+.plan-metric b { color: var(--ink); font-size: 1.05rem; font-variant-numeric: tabular-nums; }
+.plan-metric b small { color: var(--muted); font-weight: 400; }
+.plan-metric i { font-style: normal; font-size: .78rem; }
+.plan-metric.is-warn svg { color: var(--danger-deep); }
+
+/* 頭像堆疊＋期間 */
+.plan-card__people { display: flex; align-items: center; justify-content: space-between; gap: 10px; flex-wrap: wrap; }
+.plan-avatars { display: inline-flex; }
+.plan-avatar { display: inline-flex; align-items: center; justify-content: center; width: 32px; height: 32px; border-radius: 50%; border: 1.5px solid var(--ink); background: var(--accent-soft); color: var(--ink); font-weight: 700; font-size: .85rem; }
+.plan-avatar + .plan-avatar { margin-left: -8px; }
+.plan-avatar:nth-child(even) { background: var(--green); }
+.plan-avatar--more { background: var(--chip); border-style: dashed; border-color: rgb(var(--ink-rgb) / 45%); font-size: .72rem; }
+.plan-card__window { display: inline-flex; align-items: center; gap: 6px; color: var(--muted); font-size: .9rem; font-variant-numeric: tabular-nums; }
+.plan-card__window svg { width: 16px; height: 16px; }
+
+/* 執行內容：兩行截斷，完整內容靠 title */
+.plan-card__note { margin: 0; color: var(--muted); font-size: .9rem; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; overflow-wrap: anywhere; }
+.plan-card__actions { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; margin-top: 2px; }
+.plan-card__spacer { flex: 1; }
+
+/* 編輯 dialog 表單：比照 .detail-form 的欄位網格 */
+.plan-form { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 220px), 1fr)); gap: 14px; }
+.plan-form label { display: grid; gap: 5px; min-width: 0; }
+.plan-form label > span:first-child, .plan-form__legend { color: var(--muted); }
+.plan-form .span-2 { grid-column: 1 / -1; }
+.plan-form textarea { width: 100%; padding: 9px 12px; border: 1.5px solid rgb(var(--ink-rgb) / 40%); border-radius: 6px; background: transparent; resize: vertical; font: inherit; }
+.plan-form .r-combo__anchor { min-width: 0; }
+.plan-form .r-combo { display: block; width: 100%; min-height: 46px; padding: 9px 12px; border: 1.5px solid rgb(var(--ink-rgb) / 40%); border-radius: 6px; background: transparent; }
+/* 驗證錯誤摘要：role=alert 可聚焦（提交失敗時 focus 到此） */
+.plan-form__errors { grid-column: 1 / -1; margin: 0; padding: 10px 14px; border: 1.5px solid var(--danger-deep); border-radius: 8px; background: var(--red); color: var(--danger-deep); }
+.plan-form__errors ul { margin: 0; padding-left: 1.2em; }
+/* 圈選欄位組：拿掉 fieldset 原生框，靠 legend 與間距分組 */
+.plan-form__field { grid-column: 1 / -1; margin: 0; padding: 0; border: 0; min-width: 0; display: grid; gap: 8px; }
+.plan-form__field legend { padding: 0 0 4px; color: var(--muted); }
+.plan-presets { display: flex; gap: 8px; flex-wrap: wrap; }
+.plan-preset { display: inline-flex; align-items: center; gap: 6px; min-height: 38px; padding: 4px 14px; border: 1.5px dashed rgb(var(--ink-rgb) / 45%); border-radius: 999px; background: transparent; color: var(--ink); font: inherit; font-weight: 700; cursor: pointer; transition: color .15s ease, border-color .15s ease, background-color .15s ease; }
+.plan-preset:hover:not(:disabled), .plan-preset:focus-visible { color: var(--accent-strong); border-color: var(--accent-strong); background: rgb(var(--ink-rgb) / 5%); }
+.plan-preset:disabled { color: var(--muted); border-style: solid; opacity: .5; cursor: not-allowed; }
+.plan-preset__count { font-variant-numeric: tabular-nums; color: var(--accent-strong); }
+.plan-preset:disabled .plan-preset__count { color: var(--muted); }
+.plan-people { max-height: 240px; padding-right: 6px; border: 1.5px solid rgb(var(--ink-rgb) / 25%); border-radius: 8px; }
+.plan-people__row { display: flex; align-items: center; justify-content: space-between; gap: 10px; padding: 7px 12px; border-bottom: 1px dashed rgb(var(--ink-rgb) / 18%); }
+.plan-people__row:last-child { border-bottom: 0; }
+.plan-people__meta { display: flex; align-items: center; gap: 8px; flex: none; }
+.plan-form__actions { display: flex; justify-content: flex-end; gap: 10px; margin-top: 8px; }
+
+/* ── 管理階段／選項 modal ─────────────────────────────────── */.tab-panel { display: grid; gap: 16px; margin-top: 18px; }
 .plain-list { list-style: none; margin: 0; padding: 0; display: grid; gap: 8px; }
 .grow-input { flex: 1; min-width: 170px; }
 .stage-row { display: flex; align-items: center; gap: 8px; }

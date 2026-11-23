@@ -157,6 +157,42 @@ export const prospects = sqliteTable('prospects', {
   contactIdIdx: index('prospects_contact_id_idx').on(table.contactId)
 }))
 
+// 制定計畫（/plans 頁）：一張「現象 → 方法 → 圈人 → 期間 → 覆核」的計畫卡。
+//   audience 為拍板時的名單快照（contacts.id JSON 陣列，比照 completedStages 的 JSON 欄慣例）；
+//   成效不另存欄位：GET /api/plans 依圈選對象在執行期間有無跟進紀錄即時推算（見 shared/utils/planEval.ts）。
+export const plans = sqliteTable('plans', {
+  id: integer('id').primaryKey({ autoIncrement: true }),
+  // 擁有者（預留）：同 contacts。單人模式下為 NULL。
+  userId: integer('user_id'),
+  // 計畫名稱（如「不讀不回重啟計畫」）
+  name: text('name').notNull(),
+  // 現象／洞察（如「不讀不回」）
+  insight: text('insight'),
+  // 方法／管道（如「發廣告」）
+  method: text('method'),
+  // 執行內容（廣告素材方向、話術、備註…）
+  content: text('content'),
+  // 圈選對象：contacts.id 陣列，以 JSON 存放
+  audience: text('audience', { mode: 'json' })
+    .$type<number[]>()
+    .notNull()
+    .default([]),
+  // 執行期間（"YYYY-MM-DD"）；start 空＝尚未排定，end 空＝無限期（覆核窗推到今天）
+  startDate: text('start_date'),
+  endDate: text('end_date'),
+  // 狀態：planning 構想中 / active 執行中 / done 已完成
+  status: text('status').notNull().default('planning'),
+  createdAt: integer('created_at')
+    .notNull()
+    .$defaultFn(() => Math.floor(Date.now() / 1000)),
+  updatedAt: integer('updated_at')
+    .notNull()
+    .$defaultFn(() => Math.floor(Date.now() / 1000))
+    .$onUpdateFn(() => Math.floor(Date.now() / 1000))
+}, table => ({
+  userIdIdx: index('plans_user_id_idx').on(table.userId)
+}))
+
 // 跟進紀錄（時間軸，一筆名單對多筆紀錄）
 export const followUpLogs = sqliteTable('follow_up_logs', {
   id: integer('id').primaryKey({ autoIncrement: true }),

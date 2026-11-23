@@ -1,4 +1,6 @@
 // 名單型別（對應後端 contacts 表）
+import type { PlanStats } from '#shared/utils/planEval'
+
 export interface Contact {
   id: number
   userId: number | null
@@ -114,6 +116,28 @@ export const PROSPECT_SECTION_META: Record<ProspectSection, { title: string, ico
 }
 
 export const PROSPECT_SECTIONS: ProspectSection[] = ['develop', 'reserve', 'five', 'network']
+
+// 制定計畫型別（對應後端 plans 表；status 語意與 PLAN_STATUS_META 見 #shared/utils/planEval）
+export interface Plan {
+  id: number
+  userId: number | null
+  name: string
+  insight: string | null
+  method: string | null
+  content: string | null
+  // 圈選對象：contacts.id 陣列
+  audience: number[]
+  startDate: string | null
+  endDate: string | null
+  status: 'planning' | 'active' | 'done'
+  createdAt: number
+  updatedAt: number
+}
+
+// GET /api/plans 每張卡附即時推算的評估統計（見 server/api/plans/index.get.ts）
+export interface PlanWithStats extends Plan {
+  stats: PlanStats
+}
 
 // 動態 path 的 $fetch 會踩到 Nuxt 的型別配對（Excessive stack depth），
 // 統一走這個不帶路由型別的薄包裝；後端寫入端點回傳「單一物件」（list GET 回陣列）

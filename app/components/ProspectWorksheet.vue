@@ -2,6 +2,7 @@
 import RBadge from '../components/rough/RBadge.vue'
 import RButton from '../components/rough/RButton.vue'
 import RCard from '../components/rough/RCard.vue'
+import RDateInput from '../components/rough/RDateInput.vue'
 import RSelect from '../components/rough/RSelect.vue'
 import {
   api,
@@ -181,13 +182,12 @@ async function patchContact(c: Contact, key: 'level' | 'status', value: string) 
             </td>
 
             <td>
-              <input
-                class="cell-input cell-input--wide"
-                type="date"
-                :value="row.date ?? ''"
+              <RDateInput
+                cell
+                :model-value="row.date ?? ''"
                 :aria-label="`「${row.contact.name}」這一列的跟進日期`"
-                @change="patchRow(row, ($event.target as HTMLInputElement).value || null)"
-              >
+                @update:model-value="patchRow(row, $event || null)"
+              />
             </td>
 
             <td>
