@@ -18,6 +18,7 @@ import {
   hasColumnFilter,
   isOverdue,
   searchAndSortContacts,
+  stageChipsRowWidth,
   todayStr,
   type Contact,
   type ContactColumnFilters,
@@ -60,6 +61,9 @@ const freqOptions = computed(() => columnFilterOptions((contacts.value ?? []).ma
 const stageOptions = computed(() => ((stages.value ?? []) as ContactStage[])
   .map(s => ({ value: String(s.id), label: s.label, count: ((contacts.value ?? []) as Contact[]).filter(c => c.completedStages.includes(s.id)).length }))
   .filter(o => o.count > 0))
+// 進度欄寬下限：讓該列所有階段 chip 排在同一行（fixed 欄寬不會隨內容长大，故由名稱估算，
+// 超過寬螢幕剩餘空間時整表橫滾 —— 折行正是要修的行為）
+const stageColWidth = computed(() => stageChipsRowWidth(((stages.value ?? []) as ContactStage[]).map(s => s.label)))
 // 已跟進：與 checkbox 同款推導（最後跟進日＝今天）；其他欄的資料推導規則一樣，沒人的狀態不列
 const followedOptions = computed(() => {
   const list: Contact[] = contacts.value ?? []
@@ -357,15 +361,20 @@ function onEditKeydown(e: KeyboardEvent) {
       role="region"
       aria-label="名單表格，可橫向捲動"
     >
-      <table class="r-table">
+      <!-- --stages-w：進度欄需要多寬（由階段名稱估算），供 main.css 撐開表格 min-width，
+           讓每一筆的階段 chip 都排在同一行，不會折到第二行 -->
+      <table
+        class="r-table"
+        :style="`--stages-w: ${stageColWidth}px`"
+      >
         <!-- 欄寬固定在 colgroup（搭配 table-layout: fixed）：
              編輯切換（按鈕↔輸入框）不再觸發整表重排 -->
         <colgroup>
           <col style="width: 170px"><!-- 姓名＋SR/SSR 標籤並排：4 字姓名(≒72)＋標籤(≒54)＋間距＋padding 24 ≒ 156 -->
-          <col><!-- 進度：吃掉剩餘寬度 -->
+          <col><!-- 進度：下限由 --stages-w 決定（見 main.css），寬螢幕再吃掉剩餘寬度 -->
           <col style="width: 110px">
-          <col style="width: 160px">
-          <col style="width: 140px"><!-- 目標：短詞（破題／群星計畫），超長自動折行；編輯時出 RCombobox -->
+          <col style="width: 120px"><!-- 聯絡：電話 10～11 碼(≒0.5em×11＝94)＋td padding 24 ≒ 118；更長（IG／email）靠 overflow-wrap 折行 -->
+          <col style="width: 110px"><!-- 目標：短詞（破題／群星計畫 ≒68）＋td padding 24 ≒ 92，超長自動折行；編輯時出 RCombobox -->
           <col style="width: 104px"><!-- 跟進：顯示用短標（一週），編輯時 RCombobox 出全名（一個月一次 ≒62）＋漏斗(13)＋表頭鈕 padding 8＋td padding 24 ≒ 100 -->
           <col style="width: 104px"><!-- 已跟進：3 字(≒51)＋漏斗(13)＋間距＋表頭鈕 padding 8＋td padding 24 ≒ 100 -->
           <col style="width: 160px"><!-- 動作：Info 鈕(≒78)＋icon 刪除鈕(≒42)＋間距＋td padding 24 ≒ 148，160 仍留緩衝；少於內容寬度時刪除鈕會被 .list-scroll 裁右缘 -->
@@ -494,7 +503,10 @@ function onEditKeydown(e: KeyboardEvent) {
 
             <!-- 進度階段 -->
             <td>
-              <template v-if="stages?.length">
+              <div
+                v-if="stages?.length"
+                class="cell-stages"
+              >
                 <button
                   v-for="s in stages"
                   :key="s.id"
@@ -508,7 +520,7 @@ function onEditKeydown(e: KeyboardEvent) {
                 >
                   {{ s.label }}
                 </button>
-              </template>
+              </div>
               <span
                 v-else
                 class="muted-note"

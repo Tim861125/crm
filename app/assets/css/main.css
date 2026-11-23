@@ -231,7 +231,7 @@ button:disabled { cursor: not-allowed; opacity: .55; }
 /* 亮／暗切換鈕（ThemeToggle.vue）：比對側導覽文字的 44px 命中區 */
 .theme-toggle { display: inline-flex; align-items: center; justify-content: center; width: 40px; height: 40px; margin-left: 6px; border: 0; border-radius: 10px; background: transparent; color: var(--muted); transition: color .15s ease, background-color .15s ease; }
 .theme-toggle:hover { color: var(--accent-strong); background: rgb(var(--ink-rgb) / 6%); }
-/* max-width 1190＝名單表 min-width 1132＋padding 48－緩衝調整：總名單在桌面寬度不出現橫向滾輪（與 .site-header__inner 同寬對齊） */
+/* max-width 1190＝名單表常用寬度（固定欄 878＋進度欄 ≒264）＋padding 48－緩衝調整：一般階段數量下總名單在桌面寬度不出現橫向滾輪（與 .site-header__inner 同寬對齊）；階段多或名稱很長時由 --stages-w 撐寬表格、整表橫滾 */
 .page-content { max-width: 1190px; margin: 0 auto; padding: 36px 24px; }
 .page-heading { display: flex; align-items: center; justify-content: space-between; gap: 12px; flex-wrap: wrap; }
 /* 同一頁多區塊時第二區塊用 h2，維持標題層級但視覺同規模 */
@@ -307,9 +307,12 @@ button:disabled { cursor: not-allowed; opacity: .55; }
 .list-scroll { overflow-x: auto; }
 /* 固定欄寬防跑版：inline 編輯把按鈕換成輸入框時，auto 佈局會整表重排；
    table-layout: fixed 讓欄寬只認 colgroup（見 ContactList.vue）。
-   min-width＝各固定欄總和(932)＋進度欄下限(200)：低於總寬時整表橫滾，
+   min-width＝固定欄總和(878)＋進度欄寬：進度欄取 max(184, --stages-w)，--stages-w 由
+   ContactList 依階段名稱綁上（stageChipsRowWidth），目的讓每一筆的階段 chip 都排同一行。
+   頁面寬（.page-content 1190－padding 48＝1142）扣掉固定欄 878 後，進度欄還有 264 可用，
+   一般階段數量不出現滾輪；真的裝不下時才放大 min-width 讓整表橫滾，而不是折到第二行。
    不可只設固定欄總和 —— 那會把 auto 的進度欄壓成 0px，表頭按鈕溢出壓到相鄰欄（誤點來源） */
-.list-scroll .r-table { min-width: 1132px; table-layout: fixed; }
+.list-scroll .r-table { min-width: calc(878px + max(184px, var(--stages-w, 184px))); table-layout: fixed; }
 /* 表頭永不折行：固定欄寬下若欄不夠寬，中文會逐字換行變直排（如「跟進」） */
 .list-scroll .r-table th { white-space: nowrap; }
 .list-scroll .r-table td { vertical-align: top; overflow-wrap: anywhere; }
@@ -336,7 +339,9 @@ button:disabled { cursor: not-allowed; opacity: .55; }
 .r-filter__count { flex: none; color: var(--muted); font-size: .85rem; font-variant-numeric: tabular-nums; }
 .r-filter__clear { display: block; width: 100%; margin-top: 4px; padding: 7px 10px; border: 0; border-radius: 8px; background: transparent; text-align: left; color: var(--accent-strong); font-size: .9rem; text-decoration: underline; cursor: pointer; }
 .r-filter__clear:hover, .r-filter__clear:focus-visible { background: rgb(var(--ink-rgb) / 6%); }
-.stage-chip { padding: 2px 10px; border: 0; border-radius: 999px; background: var(--chip); color: var(--muted); font-size: .9rem; margin: 2px 5px 2px 0; }
+/* 進度欄：該列所有階段 chip 排成一行（寬度由 --stages-w 撐出，絕不折行） */
+.cell-stages { display: flex; align-items: center; flex-wrap: nowrap; }
+.stage-chip { padding: 2px 10px; border: 0; border-radius: 999px; background: var(--chip); color: var(--muted); font-size: .9rem; margin: 2px 5px 2px 0; flex: none; white-space: nowrap; }
 .stage-chip.is-done { background: var(--accent-strong); color: #fff; font-weight: 700; }
 html.dark .stage-chip.is-done { color: var(--paper); }
 /* 姓名欄：姓名與等級標籤（SR/SSR）並排同一行，靠 flex nowrap 防標籤折到第二行；

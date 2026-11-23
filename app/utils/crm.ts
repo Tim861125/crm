@@ -251,6 +251,34 @@ export function columnFilterOptions(values: Array<string | null>): Array<{ value
     .sort((a, b) => (a.value === FILTER_NONE ? 1 : b.value === FILTER_NONE ? -1 : a.value < b.value ? -1 : a.value > b.value ? 1 : 0))
 }
 
+// ── 總名單進度欄：一排階段 chip 需要多寬 ──────────────────────
+// 進度欄是名單表唯一的 auto 欄，而 table-layout: fixed 讓欄寬只認 colgroup、不隨內容长大，
+// 階段一多 chip 就折到第二行。為了「每一筆都排成一行」，這裡由階段名稱估算整排 chip 連同
+// 儲存格 padding 的寬度，交 ContactList 綁成 --stages-w 撐大表格 min-width（見 main.css：
+// 裝不下時整表橫滾，而不是把 chip 折行）。
+// 估算寧可從寬（早一點橫滾可接受，折行就是要修掉的 bug）。字級 .9rem（root 16px → 14.4px）下
+// 以 NaikaiFont 實測校準：全形字（中日韓，codepoint > U+2E7F）≒ 1em、其他（ASCII 數字／英文）
+// ≒ .5em，兩邊各留 4%／10% 緩衝（量法見 tests/manual/stage-row-one-line-verify.mjs）。
+// 粗體（is-done）不另乘係數：Bold-Lite 與 Regular-Lite 是同字表切片，字模寬度實測相同。
+const STAGE_CHIP_FONT_PX = 14.4
+const STAGE_CHIP_WIDE_EM = 1.04
+const STAGE_CHIP_NARROW_EM = 0.55
+// 每顆 chip 的非文字寬：padding 10×2 ＋ 右 margin 5（見 main.css .stage-chip）
+const STAGE_CHIP_CHROME_PX = 25
+// 儲存格左右 padding 12×2（見 main.css .r-table td）
+const STAGE_CELL_PADDING_PX = 24
+// 字體渲染誤差緩衝
+const STAGE_ROW_SAFETY_PX = 12
+
+export function stageChipsRowWidth(labels: string[]): number {
+  if (!labels.length) return 0
+  const textWidth = labels.reduce((sum, label) => {
+    const em = [...label].reduce((w, ch) => w + (ch.charCodeAt(0) > 0x2e7f ? STAGE_CHIP_WIDE_EM : STAGE_CHIP_NARROW_EM), 0)
+    return sum + em * STAGE_CHIP_FONT_PX
+  }, 0)
+  return Math.ceil(textWidth + labels.length * STAGE_CHIP_CHROME_PX + STAGE_CELL_PADDING_PX + STAGE_ROW_SAFETY_PX)
+}
+
 // 把日期（YYYY-MM-DD）轉成相對今天的中文描述：今天／昨天／N天前／一週前／N個月前…
 export function timeAgo(dateStr: string | null | undefined): string {
   if (!dateStr) return '—'
