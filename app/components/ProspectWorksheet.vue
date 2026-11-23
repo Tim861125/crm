@@ -138,89 +138,96 @@ async function patchContact(c: Contact, key: 'level' | 'status', value: string) 
         </RButton>
       </form>
 
-      <!-- 區塊列 -->
-      <table class="r-table">
-        <tbody>
-          <tr
-            v-for="row in bySection(section)"
-            :key="row.id"
-          >
-            <td>
-              <button
-                type="button"
-                class="cell-edit"
-                @click="emit('detail', row.contact)"
-              >
-                {{ row.contact.name }}
-              </button>
-            </td>
-
-            <td>
-              <RBadge
-                v-if="row.contact.level"
-                :tone="levelTone(row.contact.level)"
-              >
-                {{ row.contact.level }}
-              </RBadge>
-            </td>
-
-            <td>
-              <span
-                v-if="row.contact.friendOf"
-                class="muted-note"
-              >跟 {{ row.contact.friendOf }} 一組</span>
-            </td>
-
-            <td>
-              <input
-                class="cell-input"
-                :value="row.contact.status ?? ''"
-                placeholder="狀態…"
-                :aria-label="`「${row.contact.name}」的狀態`"
-                @change="patchContact(row.contact, 'status', ($event.target as HTMLInputElement).value)"
-              >
-            </td>
-
-            <td>
-              <RDateInput
-                cell
-                :model-value="row.date ?? ''"
-                :aria-label="`「${row.contact.name}」這一列的跟進日期`"
-                @update:model-value="patchRow(row, $event || null)"
-              />
-            </td>
-
-            <td>
-              <button
-                type="button"
-                class="row-step row-step--danger"
-                title="移出區塊"
-                :aria-label="`將「${row.contact.name}」移出${PROSPECT_SECTION_META[section].title}`"
-                @click="removeRow(row)"
-              >
-                ×
-              </button>
-            </td>
-          </tr>
-
-          <tr v-if="prospectsStatus === 'pending' && !prospects.length">
-            <td
-              colspan="6"
-              class="empty-cell"
+      <!-- 區塊列（手機裝不下時在卡片內橫滑；tabindex 讓鍵盤也能捲動此區域） -->
+      <div
+        class="table-scroll"
+        tabindex="0"
+        role="region"
+        :aria-label="`${PROSPECT_SECTION_META[section].title}表格，可橫向捲動`"
+      >
+        <table class="r-table">
+          <tbody>
+            <tr
+              v-for="row in bySection(section)"
+              :key="row.id"
             >
-              載入中…
-            </td>
-          </tr>
-          <tr v-else-if="!bySection(section).length">
-            <td
-              colspan="6"
-              class="empty-cell"
-            >
-              還空的，挑人放進來 🌱
-            </td>
-          </tr>
-        </tbody>
-      </table>
+              <td>
+                <button
+                  type="button"
+                  class="cell-edit"
+                  @click="emit('detail', row.contact)"
+                >
+                  {{ row.contact.name }}
+                </button>
+              </td>
+
+              <td>
+                <RBadge
+                  v-if="row.contact.level"
+                  :tone="levelTone(row.contact.level)"
+                >
+                  {{ row.contact.level }}
+                </RBadge>
+              </td>
+
+              <td>
+                <span
+                  v-if="row.contact.friendOf"
+                  class="muted-note"
+                >跟 {{ row.contact.friendOf }} 一組</span>
+              </td>
+
+              <td>
+                <input
+                  class="cell-input"
+                  :value="row.contact.status ?? ''"
+                  placeholder="狀態…"
+                  :aria-label="`「${row.contact.name}」的狀態`"
+                  @change="patchContact(row.contact, 'status', ($event.target as HTMLInputElement).value)"
+                >
+              </td>
+
+              <td>
+                <RDateInput
+                  cell
+                  :model-value="row.date ?? ''"
+                  :aria-label="`「${row.contact.name}」這一列的跟進日期`"
+                  @update:model-value="patchRow(row, $event || null)"
+                />
+              </td>
+
+              <td>
+                <button
+                  type="button"
+                  class="row-step row-step--danger"
+                  title="移出區塊"
+                  :aria-label="`將「${row.contact.name}」移出${PROSPECT_SECTION_META[section].title}`"
+                  @click="removeRow(row)"
+                >
+                  ×
+                </button>
+              </td>
+            </tr>
+
+            <tr v-if="prospectsStatus === 'pending' && !prospects.length">
+              <td
+                colspan="6"
+                class="empty-cell"
+              >
+                載入中…
+              </td>
+            </tr>
+            <tr v-else-if="!bySection(section).length">
+              <td
+                colspan="6"
+                class="empty-cell"
+              >
+                還空的，挑人放進來 🌱
+              </td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
     </RCard>
   </div>
 </template>

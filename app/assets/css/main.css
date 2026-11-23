@@ -127,8 +127,9 @@ button:disabled { cursor: not-allowed; opacity: .55; }
 /* 面板寬度：下限對齊各自的 trigger／anchor，上限不超出可用空間（reka CSS 變數） */
 .r-select__panel { min-width: var(--reka-select-trigger-width); max-width: var(--reka-select-content-available-width); }
 .r-combo__panel { min-width: var(--reka-combobox-trigger-width); max-width: var(--reka-combobox-content-available-width); }
-/* 欄頭篩選面板：寬度由內容決定，設下限避免兩字選項把面板壓得過窄 */
-.r-filter__panel { min-width: 190px; max-width: 300px; }
+/* 欄頭篩選面板：寬度由內容決定，設下限避免兩字選項把面板壓得過窄；
+   上限再受可用空間限制（reka popover 變數），手機窄屏才不會凸出視窗 */
+.r-filter__panel { min-width: 190px; max-width: min(300px, var(--reka-popover-content-available-width, 300px)); }
 /* 開關動畫掛在內層面板（popper 元素的 transform 由 reka 定位內聯控制，不可覆蓋）；
    只用 opacity／translate——RoughFrame 依尺寸繪製，縮放會畫錯框 */
 .r-pop-menu[data-state='open'] .r-pop-menu__panel { animation: select-in .16s var(--ease-out); }
@@ -356,7 +357,9 @@ html.dark .stage-chip.is-done { color: var(--paper); }
 .empty-cell { padding: 40px 16px !important; text-align: center; color: var(--muted); }
 
 /* ── 每日任務頁：今日跟進清單 ───────────────────────────────── */
-.daily-page { display: grid; gap: 34px; }
+/* 單欄須 minmax(0,1fr)：預設 auto 欄会被工作表表格的 min-content（狀態框＋日期欄等固定寬加總）
+   撐破視窗寬，整頁橫滾；鉗到 0 後欄寬跟隨容器，寬度問題交給 .table-scroll 內部橫滾 */
+.daily-page { display: grid; grid-template-columns: minmax(0, 1fr); gap: 34px; }
 .follow-list { display: grid; gap: 10px; }
 .follow-row__content { display: flex; align-items: center; justify-content: space-between; gap: 10px; flex-wrap: wrap; padding: 12px 16px; }
 .follow-row__meta { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
@@ -366,6 +369,9 @@ html.dark .stage-chip.is-done { color: var(--paper); }
 /* ── 每日任務頁：四區塊工作表 ───────────────────────────────── */
 .worksheet { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 420px), 1fr)); gap: 22px; }
 .worksheet .r-select__frame { flex: 1; min-width: 170px; }
+/* 區塊表格裝不下卡片時在卡片內橫滾（比照總名單 .list-scroll），
+   否則狀態框(110)＋日期欄(150)等固定寬會把卡片撐出視窗 */
+.table-scroll { overflow-x: auto; }
 .section-head { display: flex; align-items: baseline; justify-content: space-between; gap: 10px; margin: 0 0 12px; }
 .section-head h2 { margin: 0; font-size: 1.2rem; }
 .section-hint { color: var(--muted); font-size: .82rem; }
@@ -483,6 +489,16 @@ html.dark .stage-chip.is-done { color: var(--paper); }
   .page-content { padding: 24px 16px; }
   .page-heading { align-items: flex-start; }
   .detail-form { grid-template-columns: 1fr; }
+  /* 手機頁頭：品牌＋三頁導覽＋主題切換裝不進一行（375px 下約 420px 寬），
+     改允許折行——導覽整塊退到第二列，避免表頭凸出視窗造成整頁橫滾 */
+  .site-header__inner { min-height: 0; padding: 10px 16px; row-gap: 2px; flex-wrap: wrap; }
+  .site-nav { flex-wrap: wrap; }
+  /* 搜尋框吃滿整行，新增鈕自然落到下一行（比 280px 縮在左邊更好按） */
+  .list-search { width: 100%; }
+  /* 姓名不折行：CJK 的 min-content 只有 1 字，窄屏下會被狀態框／日期欄擠到逐字直排；
+     nowrap 讓姓名撐出自然欄寬，裝不下由 .table-scroll 橫滾（比照總名單）。
+     只在窄屏套用：桌面兩欄卡片寬度足夠，維持可折行以免表格 min-content 反把卡片撐出橫滾 */
+  .worksheet .cell-edit { white-space: nowrap; }
 }
 
 /* 觸控裝置：小型文字動作鈕擴大到 44×44 命中區（Apple HIG），视觉尺寸不变靠 padding */
@@ -493,4 +509,9 @@ html.dark .stage-chip.is-done { color: var(--paper); }
   .th-filter { min-height: 36px; padding: 2px 8px; }
   .r-pop-menu__item { min-height: 44px; }
   .r-pop-menu__x { min-width: 36px; min-height: 36px; }
+  /* 工作表區塊列的日期欄與狀態框：34／38px 高在手指下偏小，補到 44 */
+  .r-date--cell { min-height: 44px; }
+  .cell-input { min-height: 44px; }
+  /* 總名單已跟進 checkbox：核取方框僅 18px，把整列命中區放大置中（WCAG 2.2 目標尺寸） */
+  .cell-check .r-choice { min-width: 44px; min-height: 44px; justify-content: center; }
 }
