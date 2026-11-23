@@ -13,6 +13,7 @@ import {
   columnFilterOptions,
   emptyColumnFilters,
   FILTER_NONE,
+  FOLLOW_UP_FREQ_OPTIONS,
   FOLLOW_UP_FREQ_SHORT,
   hasColumnFilter,
   isOverdue,
@@ -188,15 +189,15 @@ async function patchContact(c: Contact, patch: Partial<Contact> & Record<string,
   }
 }
 
-// ── inline 編輯儲存格（姓名／聯絡方式／地點／目標）─────────────
+// ── inline 編輯儲存格（姓名／聯絡方式／地點／目標／跟進頻率）───
 const editingKey = ref<string | null>(null)
 const editingValue = ref('')
 
-type EditableField = 'name' | 'contact' | 'location' | 'goal'
+type EditableField = 'name' | 'contact' | 'location' | 'goal' | 'followUpFreq'
 
 function startEdit(c: Contact, field: EditableField) {
   editingKey.value = `${field}-${c.id}`
-  editingValue.value = { name: c.name, contact: c.contact, location: c.location, goal: c.goal }[field] ?? ''
+  editingValue.value = { name: c.name, contact: c.contact, location: c.location, goal: c.goal, followUpFreq: c.followUpFreq }[field] ?? ''
   // 進入編輯後聚焦輸入框（巨集按新增時直接打字；鍵盤操作不需再點一次）
   void nextTick(() => {
     const input = document.querySelector<HTMLInputElement>(`input.cell-input[data-edit="${editingKey.value}"]`)
@@ -209,6 +210,11 @@ function commitEdit(c: Contact, field: EditableField) {
   editingKey.value = null
   let v = editingValue.value.trim()
   if (field === 'name' && !v) v = c.name // 姓名不可為空
+  // 跟進頻率是後端 z.enum 固定六個值（非可增刪的選項表）：打字打出選單外的文字時不送出，維持原值並提示
+  if (field === 'followUpFreq' && v && !FOLLOW_UP_FREQ_OPTIONS.includes(v)) {
+    flash('跟進頻率請從下拉選單中選擇', { error: true })
+    return
+  }
   patchContact(c, { [field]: v || null })
 }
 
@@ -360,7 +366,7 @@ function onEditKeydown(e: KeyboardEvent) {
           <col style="width: 110px">
           <col style="width: 160px">
           <col style="width: 140px"><!-- 目標：短詞（破題／群星計畫），超長自動折行；編輯時出 RCombobox -->
-          <col style="width: 88px"><!-- 跟進：2 字(≒34)＋漏斗(13)＋間距＋表頭鈕 padding 8＋td padding 24 ≒ 83，72 寬會擠爆 -->
+          <col style="width: 104px"><!-- 跟進：顯示用短標（一週），編輯時 RCombobox 出全名（一個月一次 ≒62）＋漏斗(13)＋表頭鈕 padding 8＋td padding 24 ≒ 100 -->
           <col style="width: 104px"><!-- 已跟進：3 字(≒51)＋漏斗(13)＋間距＋表頭鈕 padding 8＋td padding 24 ≒ 100 -->
           <col style="width: 160px"><!-- 動作：Info 鈕(≒78)＋icon 刪除鈕(≒42)＋間距＋td padding 24 ≒ 148，160 仍留緩衝；少於內容寬度時刪除鈕會被 .list-scroll 裁右缘 -->
         </colgroup>
@@ -608,9 +614,32 @@ function onEditKeydown(e: KeyboardEvent) {
               </template>
             </td>
 
-            <!-- 跟進頻率 -->
+            <!-- 跟進頻率（同地點模式：點了出 RCombobox 下拉；後端 enum 固定六個值，故選單不可增刪） -->
             <td>
-              {{ c.followUpFreq ? FOLLOW_UP_FREQ_SHORT[c.followUpFreq] : '—' }}
+              <template v-if="editingKey === `followUpFreq-${c.id}`">
+                <RCombobox
+                  v-model="editingValue"
+                  :options="FOLLOW_UP_FREQ_OPTIONS"
+                  class="cell-input"
+                  :data-edit="`followUpFreq-${c.id}`"
+                  aria-label="編輯跟進頻率"
+                  empty-text="跟進頻率是固定選項，請從選單中選"
+                  @blur="commitEdit(c, 'followUpFreq')"
+                  @keydown="onEditKeydown"
+                />
+              </template>
+              <template v-else>
+                <button
+                  type="button"
+                  class="cell-edit cell-edit--plain"
+                  :data-edit-target="`followUpFreq-${c.id}`"
+                  :aria-label="`編輯「${c.name}」的跟進頻率：${c.followUpFreq ?? '未設定'}`"
+                  :title="c.followUpFreq || '點擊編輯跟進頻率'"
+                  @click="startEdit(c, 'followUpFreq')"
+                >
+                  {{ c.followUpFreq ? FOLLOW_UP_FREQ_SHORT[c.followUpFreq] : '—' }}
+                </button>
+              </template>
             </td>
 
             <!-- 已跟進：打勾＝note 記一筆今天的跟進紀錄；勾選狀態＝最後跟進日是不是今天 -->
