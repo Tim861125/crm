@@ -3,7 +3,7 @@ import rough from 'roughjs'
 import type { Options } from 'roughjs/bin/core'
 
 const props = withDefaults(defineProps<{
-  shape?: 'rect' | 'line'
+  shape?: 'rect' | 'line' | 'ellipse'
   fill?: string
   fillStyle?: 'hachure' | 'solid' | 'zigzag'
   stroke?: string
@@ -31,7 +31,9 @@ function redraw() {
   }
   const drawable = props.shape === 'line'
     ? renderer.line(2, height / 2, Math.max(2, width - 2), height / 2, options)
-    : renderer.rectangle(2, 2, Math.max(1, width - 4), Math.max(1, height - 4), options)
+    : props.shape === 'ellipse'
+      ? renderer.ellipse(width / 2, height / 2, Math.max(1, width - 4), Math.max(1, height - 4), options)
+      : renderer.rectangle(2, 2, Math.max(1, width - 4), Math.max(1, height - 4), options)
   drawing.value.appendChild(drawable)
   drawn.value = true
 }

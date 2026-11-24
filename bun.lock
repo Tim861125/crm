@@ -5,6 +5,7 @@
     "": {
       "name": "crm",
       "dependencies": {
+        "@internationalized/date": "^3.12.4",
         "better-sqlite3": "^13.0.3",
         "drizzle-orm": "^0.45.2",
         "nuxt": "^4.4.8",

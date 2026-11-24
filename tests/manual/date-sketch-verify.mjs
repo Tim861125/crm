@@ -1,4 +1,5 @@
 // 手繪日期輸入（RDateInput）實渲驗證：/plans 編輯器、/daily worksheet cell、/ 明细 modal
+// 並驗證自繪手繪日曆面板：開面板（手繪框／週格／42 格）、點選日寫回 yyyy-mm-dd、今天鈕、Esc 收合
 // 用法：bun run dev 後 `node tests/manual/date-sketch-verify.mjs`（截圖輸出到 /tmp/opencode/）
 import puppeteer from 'puppeteer-core'
 
@@ -8,7 +9,9 @@ const sleep = ms => new Promise(r => setTimeout(r, ms))
 
 const browser = await puppeteer.launch({
   executablePath: process.env.CHROME_PATH || '/usr/bin/google-chrome',
-  headless: true,
+  // 桌面手繪面板路徑的驗證需要 hover:hover／pointer:fine——headless Chrome 回報 none 且
+  // CDP setEmulatedMedia 無效，須 headful 跑：`xvfb-run -a HEADED=1 node tests/manual/date-sketch-verify.mjs`
+  headless: !process.env.HEADED,
   args: ['--no-sandbox', '--disable-dev-shm-usage']
 })
 const page = await browser.newPage()
@@ -55,6 +58,71 @@ if (newBtn && await newBtn.evaluate(el => !!el)) {
   await page.screenshot({ path: `${OUT}/date-sketch-plans.png` })
 } else {
   results.plans = '找不到「擬新計畫」鈕'
+}
+
+// 1b. /plans 手繪面板互動：開面板 → 結構檢查 → 選 15 日 → 「今天」鈕 → Esc 收合（dialog 不受影響）
+if (results.plans !== '找不到「擬新計畫」鈕') {
+  const field = await page.$('.r-dialog .r-date__field')
+  if (field) {
+    await field.click()
+    await sleep(450)
+    results.panel = await page.evaluate(() => {
+      const pop = document.querySelector('.r-pop-menu .r-cal')
+      if (!pop) return '面板沒開（.r-cal 不存在）'
+      return {
+        weekdays: pop.querySelectorAll('.r-cal__wd').length,
+        cells: pop.querySelectorAll('.r-cal__cell').length,
+        navs: [...pop.querySelectorAll('.r-cal__nav')].map(b => b.getAttribute('aria-label')),
+        heading: pop.querySelector('.r-cal__heading')?.textContent?.trim(),
+        panelDrawn: !!document.querySelector('.r-cal__panel .rough-frame__drawing path'),
+        footBtns: [...pop.querySelectorAll('.r-cal__foot-btn')].map(b => b.textContent.trim())
+      }
+    })
+    await page.screenshot({ path: `${OUT}/date-sketch-panel.png` })
+    // 點選本月 15 日（ DOM click 走 reka trigger；選完應收合並把值寫回原生 input）
+    const cellLabel = await page.evaluate(() => {
+      const cell = [...document.querySelectorAll('.r-cal__cell:not([data-outside-view]):not([data-disabled])')]
+        .find(c => c.querySelector('.r-cal__num')?.textContent?.trim() === '15')
+      if (!cell) return '(找不到 15 日格)'
+      cell.click()
+      return cell.getAttribute('aria-label')
+    })
+    await sleep(450)
+    results.pickDay = {
+      cellLabel,
+      value: await page.$eval('.r-dialog .r-date', el => el.value),
+      panelClosed: !(await page.$('.r-pop-menu .r-cal'))
+    }
+    // 再開面板：選中日應有手繪圈（RoughFrame ellipse 已畫出）＋「今天」鈕可用
+    await field.click()
+    await sleep(450)
+    results.ringDrawn = await page.evaluate(() =>
+      !!document.querySelector('.r-cal__cell[data-selected] .r-cal__ring .rough-frame__drawing path'))
+    await page.evaluate(() =>
+      [...document.querySelectorAll('.r-cal__foot-btn')].find(b => b.textContent.includes('今天'))?.click())
+    await sleep(450)
+    results.pickToday = {
+      value: await page.$eval('.r-dialog .r-date', el => el.value),
+      expect: await page.evaluate(() => {
+        const n = new Date()
+        return `${n.getFullYear()}-${String(n.getMonth() + 1).padStart(2, '0')}-${String(n.getDate()).padStart(2, '0')}`
+      })
+    }
+    // Esc 收合面板：focus 回欄位、外層 dialog 不收合
+    await field.click()
+    await sleep(450)
+    await page.keyboard.press('Escape')
+    await sleep(450)
+    results.escClose = {
+      panelClosed: !(await page.$('.r-pop-menu .r-cal')),
+      dialogStillOpen: !!(await page.$('.r-dialog')),
+      focusInDateInput: await page.evaluate(() => document.activeElement?.classList.contains('r-date'))
+    }
+    await page.keyboard.press('Escape') // 收 dialog
+    await sleep(400)
+  } else {
+    results.panel = '找不到日期欄位'
+  }
 }
 
 // 2. /daily：挑一人放進「五人名單」→ 驗證 cell 版日期欄 → 移出還原

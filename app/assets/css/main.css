@@ -99,8 +99,9 @@ button:disabled { cursor: not-allowed; opacity: .55; }
 .r-select__chev { flex: none; width: 15px; height: 15px; color: var(--muted); transition: transform .18s var(--ease-out); }
 .r-select[data-state='open'] .r-select__chev { transform: rotate(180deg); }
 /* ── RDateInput（rough/RDateInput.vue）：原生 date 欄位的全手繪外觀 ──
-   RoughFrame 手繪框＋NaikaiFont 日期；原生日曆指示器透明化並拉滿整欄（點哪都開系統行事曆），
-   右側手繪日曆圖示純裝飾、不吃滑鼠事件（pointer-events: none，點擊由指示器接手）。 */
+   RoughFrame 手繪框＋NaikaiFont 日期；行事曆彈層改為自繪手繪面板（見下方 .r-cal__*）：
+   桌面（fine pointer）隱去原生日曆指示器、點欄位由元件攔截開手繪面板（含壓掉 Firefox 內建彈曆）；
+   觸控裝置維持原生指示器透明拉滿整欄（點哪都開系統滾輪，行動選日期最佳實踐）。 */
 .r-date__frame { border-radius: 10px; } /* 圓角讓 focus 底色不超出歪斜筆框 */
 .r-date__frame--cell { width: 150px; border-radius: 8px; }
 .r-date__field { position: relative; }
@@ -108,18 +109,52 @@ button:disabled { cursor: not-allowed; opacity: .55; }
 .r-date--cell { min-height: 34px; padding: 4px 30px 4px 8px; }
 /* focus 時微微染上螢光筆底色（呼應 RSelect 展開時的 trigger 色） */
 .r-date__frame:focus-within { background: color-mix(in srgb, var(--accent) 7%, transparent); }
-.r-date::-webkit-calendar-picker-indicator { position: absolute; inset: 0; width: auto; height: auto; opacity: 0; cursor: pointer; }
 /* 尚未選日：yyyy/mm/dd 範本以 placeholder 淡色呈現，不像已填值 */
 .r-date.is-empty::-webkit-datetime-edit { color: var(--muted); }
-/* 手繪日曆圖示（雙類別選擇器蓋過後出的 .icon-scribble 20px 預設） */
-.r-date__field .r-date__pick { position: absolute; right: 12px; top: 50%; transform: translateY(-50%); width: 17px; height: 17px; color: var(--muted); pointer-events: none; }
-.r-date__field--cell .r-date__pick { right: 9px; }
-/* Firefox 無 webkit 指示器、自繪日曆鈕已夠用：隱去手繪圖示與留位，避免兩顆日鈕擠在一起 */
-@supports not selector(::-webkit-calendar-picker-indicator) {
-  .r-date__pick { display: none; }
-  .r-date { padding-right: 12px; }
-  .r-date--cell { padding-right: 8px; }
+/* 觸控：原生日曆指示器透明化並拉滿整欄（手繪日曆鈕為定位元素浮在其上，不會被蓋住） */
+.r-date::-webkit-calendar-picker-indicator { position: absolute; inset: 0; width: auto; height: auto; opacity: 0; cursor: pointer; }
+@media (hover: hover) and (pointer: fine) {
+  /* 桌面：picker 交給手繪面板，隱去原生指示器避免雙日曆混淆 */
+  .r-date::-webkit-calendar-picker-indicator { display: none; }
 }
+/* 手繪日曆鈕（開手繪面板的 trigger；原純裝飾圖示升格為真按鈕） */
+.r-date__field .r-date__pick { position: absolute; right: 7px; top: 50%; transform: translateY(-50%); display: flex; align-items: center; justify-content: center; width: 31px; height: 31px; padding: 0; border: 0; border-radius: 8px; background: transparent; color: var(--muted); cursor: pointer; transition: color .15s ease, background-color .15s ease; }
+.r-date__field .r-date__pick:hover:not(:disabled) { color: var(--ink); background: color-mix(in srgb, var(--accent) 10%, transparent); }
+.r-date__field .r-date__pick:disabled { opacity: .38; cursor: not-allowed; }
+/* 鈕內圖示（雙類別選擇器蓋過 .icon-scribble 20px 預設） */
+.r-date__pick .icon-scribble { width: 17px; height: 17px; }
+.r-date__field--cell .r-date__pick { right: 2px; width: 27px; height: 27px; }
+/* ── RDateInput 手繪日曆面板（reka Popover＋Calendar 原語，見 RDateInput.vue；
+   鍵盤方向鍵巡格、roving focus 與 aria 由 reka 負責）──
+   紙面＋落影沿用 .r-pop-menu__panel；fixed-weeks 固定六列，面板高度不隨月份跳動 */
+.r-cal__panel { width: min(312px, var(--reka-popover-content-available-width, 312px)); }
+.r-cal { display: flex; flex-direction: column; padding: 10px 12px 8px; }
+.r-cal__head { display: flex; align-items: center; justify-content: space-between; gap: 2px; }
+.r-cal__nav { display: flex; flex: none; align-items: center; justify-content: center; width: 28px; height: 28px; padding: 0; border: 0; border-radius: 7px; background: transparent; color: var(--muted); cursor: pointer; transition: color .12s ease, background-color .12s ease; }
+.r-cal__nav svg { display: block; width: 14px; height: 14px; fill: none; stroke: currentColor; stroke-width: 1.8; stroke-linecap: round; stroke-linejoin: round; }
+.r-cal__nav:hover:not([disabled]) { color: var(--ink); background: color-mix(in srgb, var(--accent) 10%, transparent); }
+.r-cal__nav[disabled] { opacity: .35; cursor: default; }
+.r-cal__heading { font-weight: 700; font-size: 1.02rem; letter-spacing: .02em; }
+.r-cal__grid { width: 100%; border-collapse: collapse; }
+.r-cal__wd { padding: 6px 0 3px; color: var(--muted); font-size: .8rem; font-weight: 500; text-align: center; }
+.r-cal__grid td { text-align: center; }
+/* 日期格＝reka 的 div[role=button]（roving tabindex）；狀態走 data-*（selected/today/outside-view/disabled） */
+.r-cal__cell { position: relative; display: flex; width: 100%; height: 37px; align-items: center; justify-content: center; border: 0; border-radius: 9px; background: transparent; color: inherit; font: inherit; cursor: pointer; user-select: none; transition: background-color .12s ease; }
+.r-cal__cell:hover:not([data-disabled]) { background: color-mix(in srgb, var(--accent) 8%, transparent); }
+/* position: relative 讓數字留在定位層、蓋在絕對定位的手繪圈之上 */
+.r-cal__num { position: relative; padding: 1px 5px; }
+.r-cal__cell[data-outside-view] { opacity: .35; }
+.r-cal__cell[data-disabled] { color: var(--muted); opacity: .38; cursor: not-allowed; }
+.r-cal__cell[data-selected] .r-cal__num { color: var(--accent-strong); font-weight: 700; }
+/* 選中日的 RoughFrame 手繪圈（ellipse）：裝飾層不吃滑鼠事件 */
+.r-cal__ring { position: absolute; inset: 2px 1px; pointer-events: none; }
+/* 今日：數字下方一顆墨點（已選中時改由手繪圈表達） */
+.r-cal__dot { position: absolute; left: 50%; bottom: 3px; width: 5px; height: 5px; transform: translateX(-50%); border-radius: 50%; background: var(--accent-strong); }
+/* 頁尾「今天／清除」：手繪虛線分隔的小圓鈕 */
+.r-cal__foot { display: flex; justify-content: space-between; gap: 8px; margin-top: 6px; padding-top: 7px; border-top: 1.5px dashed rgb(var(--ink-rgb) / 22%); }
+.r-cal__foot-btn { padding: 3px 10px; border: 0; border-radius: 7px; background: transparent; color: var(--accent-strong); font: inherit; font-size: .88rem; cursor: pointer; transition: background-color .12s ease, color .12s ease; }
+.r-cal__foot-btn:hover:not(:disabled) { background: color-mix(in srgb, var(--accent) 10%, transparent); }
+.r-cal__foot-btn:disabled { color: var(--muted); opacity: .55; cursor: default; }
 /* ── 共用下拉面板（portalled 至 body，見 RSelect.vue／RCombobox.vue）──
    紙面卡片＋落影浮起；side-offset 10px 讓手繪框不與 trigger 框黏成雙線；超高時內部捲動 */
 .r-pop-menu { z-index: 60; outline: none; }
