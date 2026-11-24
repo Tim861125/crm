@@ -13,6 +13,7 @@ import {
   todayStr,
   timeAgo,
   type Contact,
+  type ContactStage,
   type FollowUpLog
 } from '../utils/crm'
 
@@ -130,8 +131,30 @@ watch(open, (o) => {
     refreshFriendOfs()
     refreshDevPartners()
     refreshGoals()
+    refreshStages()
   }
 })
+
+// ── 進度階段 ─────────────────────────────────────────────────
+// 手機版總名單隱藏了進度欄（只留姓名／目標／今日跟進），階段改在這裡切換；
+// 比照清單行為：點了立即 PATCH completedStages，不入表單草稿、不受髒擋影響
+const { data: stages, refresh: refreshStages } = useFetch('/api/contact-stages', { default: () => [] })
+const stageList = computed(() => (stages.value ?? []) as ContactStage[])
+
+async function toggleStage(stageId: number) {
+  const c = contact.value
+  if (!c) return
+  const next = c.completedStages.includes(stageId)
+    ? c.completedStages.filter(x => x !== stageId)
+    : [...c.completedStages, stageId]
+  try {
+    const updated = await api<Contact>(`/api/contacts/${c.id}`, { method: 'PATCH', body: { completedStages: next } })
+    contact.value = updated // chips 讀 contact.completedStages，立即反映
+    emit('refresh') // 名單頁同步重抓，清單的進度欄隨之更新
+  } catch (err: unknown) {
+    flash(`切換階段失敗：${(err as Error)?.message}`)
+  }
+}
 
 const logDate = ref(todayStr())
 const logContent = ref('')
@@ -346,6 +369,28 @@ const levelItems = LEVEL_OPTIONS.map(v => ({ label: v, value: v }))
     @update:open="open = $event"
   >
     <div v-if="contact">
+      <!-- 進度階段：手機版總名單隱藏了進度欄，這裡是唯一切換入口（點了立即儲存，見 toggleStage） -->
+      <div
+        v-if="stageList.length"
+        class="detail-stages"
+        role="group"
+        aria-label="進度階段"
+      >
+        <span class="detail-stages__label">進度</span>
+        <button
+          v-for="s in stageList"
+          :key="s.id"
+          type="button"
+          class="stage-chip"
+          :class="{ 'is-done': contact.completedStages.includes(s.id) }"
+          :aria-pressed="contact.completedStages.includes(s.id)"
+          :aria-label="`階段「${s.label}」：${contact.completedStages.includes(s.id) ? '已完成' : '未完成'}，點擊切換`"
+          @click="toggleStage(s.id)"
+        >
+          {{ s.label }}
+        </button>
+      </div>
+
       <!-- 欄位表單 -->
       <div class="detail-form">
         <label>

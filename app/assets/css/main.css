@@ -380,6 +380,9 @@ html.dark .stage-chip.is-done { color: var(--paper); }
 
 /* ── 明細 modal：欄位表單＋跟進紀錄時間軸 ──────────────────── */
 .detail-dialog { width: min(680px, calc(100vw - 32px)); }
+/* 進度列：手機版名單隱藏進度欄後，明細內唯一切換入口；chip 沿用清單 .stage-chip 樣式 */
+.detail-stages { display: flex; align-items: center; flex-wrap: wrap; gap: 4px 0; margin: 0 0 16px; }
+.detail-stages__label { color: var(--muted); margin-right: 6px; }
 .detail-form { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 220px), 1fr)); gap: 14px; }
 .detail-form label { display: grid; gap: 5px; min-width: 0; }
 .detail-form label > span:first-child { color: var(--muted); }
@@ -495,6 +498,19 @@ html.dark .stage-chip.is-done { color: var(--paper); }
   .site-nav { flex-wrap: wrap; }
   /* 搜尋框吃滿整行，新增鈕自然落到下一行（比 280px 縮在左邊更好按） */
   .list-search { width: 100%; }
+  /* 手機版總名單：只留姓名／目標／今日跟進（已跟進）三欄＋Info 明細鈕。
+     進度／地點／聯絡／跟進頻率欄（col＋th＋td 同標 .col-hide-sm）與刪除鈕收起來，
+     要看的內容到明細 modal 看（進度在明細內可直接切換）。
+     col 必須連 colgroup 一起隱藏——fixed 欄寬只認 col，藏了 td 不藏 col 仍會撐寬；
+     同時取消 min-width 與 table-layout:fixed，剩下四欄靠 auto 佈局塞進 375px 視窗不橫滾 */
+  .col-hide-sm { display: none; }
+  .row-delete { display: none; }
+  .list-scroll .r-table { min-width: 0; table-layout: auto; }
+  .list-scroll .r-table col { width: auto !important; }
+  /* 剩餘四欄的 min-content（姓名＋SSR 徽章／表頭漏斗／Info 鈕）合计 ≒394px 仍會撐出內部橫滾；
+     收掉儲存格與鈕的橫向 padding（12→6、20→12）壓回 343px 容器內，手機版完全不需要橫滑 */
+  .list-scroll .r-table th, .list-scroll .r-table td { padding-left: 6px; padding-right: 6px; }
+  .list-scroll .r-button { padding-left: 12px; padding-right: 12px; }
   /* 姓名不折行：CJK 的 min-content 只有 1 字，窄屏下會被狀態框／日期欄擠到逐字直排；
      nowrap 讓姓名撐出自然欄寬，裝不下由 .table-scroll 橫滾（比照總名單）。
      只在窄屏套用：桌面兩欄卡片寬度足夠，維持可折行以免表格 min-content 反把卡片撐出橫滾 */
@@ -514,4 +530,6 @@ html.dark .stage-chip.is-done { color: var(--paper); }
   .cell-input { min-height: 44px; }
   /* 總名單已跟進 checkbox：核取方框僅 18px，把整列命中區放大置中（WCAG 2.2 目標尺寸） */
   .cell-check .r-choice { min-width: 44px; min-height: 44px; justify-content: center; }
+  /* 明細 modal 進度 chip：名單列內 30px 高偏小，觸控下補到 44 */
+  .detail-stages .stage-chip { display: inline-flex; align-items: center; min-height: 44px; }
 }

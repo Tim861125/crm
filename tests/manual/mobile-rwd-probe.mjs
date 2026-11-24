@@ -79,6 +79,24 @@ async function shot(name) {
   await page.screenshot({ path: `${OUT}/${W}px-${name}.png`, fullPage: true })
 }
 
+// 只回傳「窄屏下實際可見」的第一個符合按鈕（display:none 的 hidden 元素 boundingBox 為 0，puppeteer 點擊會直接 throw）
+async function visibleSelector(sel) {
+  const h = await page.evaluateHandle(s =>
+    [...document.querySelectorAll(s)].find(b => b.getBoundingClientRect().width > 0), sel)
+  return h.asElement()
+}
+
+async function clickVisible(sel) {
+  const h = await visibleSelector(sel)
+  if (!h) {
+    console.log(`（無可見 ${sel}，跳過）`)
+    return false
+  }
+  await h.click()
+  await sleep(900)
+  return true
+}
+
 async function visit(url, name) {
   await page.goto(APP + url, { waitUntil: 'networkidle0', timeout: 60000 })
   await sleep(1200)
@@ -102,18 +120,14 @@ await visit('plans', 'plans')
 // 明細 modal（總名單第一列 Info 鈕）
 await page.goto(APP, { waitUntil: 'networkidle0', timeout: 60000 })
 await sleep(1200)
-if (await page.$('button[aria-label^="開啟"]')) {
-  await page.click('button[aria-label^="開啟"]')
-  await sleep(900)
+if (await clickVisible('button[aria-label^="開啟"]')) {
   await report('index_明細modal')
   await shot('index_明細modal')
   await page.keyboard.press('Escape')
   await sleep(500)
 }
-// 階段管理 dialog
-if (await page.$('button[title="管理進度階段"]')) {
-  await page.click('button[title="管理進度階段"]')
-  await sleep(900)
+// 階段管理 dialog（手機版進度欄隱藏 → 齒輪鈕不存在於可見列，clickVisible 會跳過）
+if (await clickVisible('button[title="管理進度階段"]')) {
   await report('index_階段管理modal')
   await shot('index_階段管理modal')
   await page.keyboard.press('Escape')

@@ -369,20 +369,31 @@ function onEditKeydown(e: KeyboardEvent) {
       >
         <!-- 欄寬固定在 colgroup（搭配 table-layout: fixed）：
              編輯切換（按鈕↔輸入框）不再觸發整表重排 -->
+        <!-- col-hide-sm（col/th/td 同標）＝手機版（≤640px）隱藏的欄：只留姓名／目標／今日跟進（已跟進）
+             三欄＋Info 明細鈕，其餘欄位到明細 modal 看（見 main.css 640px 區塊） -->
         <colgroup>
           <col style="width: 170px"><!-- 姓名＋SR/SSR 標籤並排：4 字姓名(≒72)＋標籤(≒54)＋間距＋padding 24 ≒ 156 -->
-          <col><!-- 進度：下限由 --stages-w 決定（見 main.css），寬螢幕再吃掉剩餘寬度 -->
-          <col style="width: 110px">
-          <col style="width: 120px"><!-- 聯絡：電話 10～11 碼(≒0.5em×11＝94)＋td padding 24 ≒ 118；更長（IG／email）靠 overflow-wrap 折行 -->
+          <col class="col-hide-sm"><!-- 進度：下限由 --stages-w 決定（見 main.css），寬螢幕再吃掉剩餘寬度 -->
+          <col
+            class="col-hide-sm"
+            style="width: 110px"
+          >
+          <col
+            class="col-hide-sm"
+            style="width: 120px"
+          ><!-- 聯絡：電話 10～11 碼(≒0.5em×11＝94)＋td padding 24 ≒ 118；更長（IG／email）靠 overflow-wrap 折行 -->
           <col style="width: 110px"><!-- 目標：短詞（破題／群星計畫 ≒68）＋td padding 24 ≒ 92，超長自動折行；編輯時出 RCombobox -->
-          <col style="width: 104px"><!-- 跟進：顯示用短標（一週），編輯時 RCombobox 出全名（一個月一次 ≒62）＋漏斗(13)＋表頭鈕 padding 8＋td padding 24 ≒ 100 -->
+          <col
+            class="col-hide-sm"
+            style="width: 104px"
+          ><!-- 跟進：顯示用短標（一週），編輯時 RCombobox 出全名（一個月一次 ≒62）＋漏斗(13)＋表頭鈕 padding 8＋td padding 24 ≒ 100 -->
           <col style="width: 104px"><!-- 已跟進：3 字(≒51)＋漏斗(13)＋間距＋表頭鈕 padding 8＋td padding 24 ≒ 100 -->
           <col style="width: 160px"><!-- 動作：Info 鈕(≒78)＋icon 刪除鈕(≒42)＋間距＋td padding 24 ≒ 148，160 仍留緩衝；少於內容寬度時刪除鈕會被 .list-scroll 裁右缘 -->
         </colgroup>
         <thead>
           <tr>
             <th>姓名</th>
-            <th>
+            <th class="col-hide-sm">
               <span class="th-manage">
                 <ColumnFilterMenu
                   v-model="filters.stage"
@@ -418,7 +429,7 @@ function onEditKeydown(e: KeyboardEvent) {
                 </button>
               </span>
             </th>
-            <th>
+            <th class="col-hide-sm">
               <ColumnFilterMenu
                 v-model="filters.location"
                 label="地點"
@@ -426,7 +437,7 @@ function onEditKeydown(e: KeyboardEvent) {
                 :active="filters.location.length > 0"
               />
             </th>
-            <th>
+            <th class="col-hide-sm">
               <ColumnFilterMenu
                 v-model="filters.contact"
                 label="聯絡"
@@ -442,7 +453,7 @@ function onEditKeydown(e: KeyboardEvent) {
                 :active="filters.goal.length > 0"
               />
             </th>
-            <th>
+            <th class="col-hide-sm">
               <ColumnFilterMenu
                 v-model="filters.freq"
                 label="跟進"
@@ -502,7 +513,7 @@ function onEditKeydown(e: KeyboardEvent) {
             </td>
 
             <!-- 進度階段 -->
-            <td>
+            <td class="col-hide-sm">
               <div
                 v-if="stages?.length"
                 class="cell-stages"
@@ -528,7 +539,7 @@ function onEditKeydown(e: KeyboardEvent) {
             </td>
 
             <!-- 位置 -->
-            <td>
+            <td class="col-hide-sm">
               <template v-if="editingKey === `location-${c.id}`">
                 <RCombobox
                   v-model="editingValue"
@@ -561,7 +572,7 @@ function onEditKeydown(e: KeyboardEvent) {
             </td>
 
             <!-- 聯絡方式 -->
-            <td>
+            <td class="col-hide-sm">
               <template v-if="editingKey === `contact-${c.id}`">
                 <RCombobox
                   v-model="editingValue"
@@ -627,7 +638,7 @@ function onEditKeydown(e: KeyboardEvent) {
             </td>
 
             <!-- 跟進頻率（同地點模式：點了出 RCombobox 下拉；後端 enum 固定六個值，故選單不可增刪） -->
-            <td>
+            <td class="col-hide-sm">
               <template v-if="editingKey === `followUpFreq-${c.id}`">
                 <RCombobox
                   v-model="editingValue"
@@ -675,7 +686,7 @@ function onEditKeydown(e: KeyboardEvent) {
                 Info
               </RButton>
               <RButton
-                class="r-button--icon"
+                class="r-button--icon row-delete"
                 variant="danger"
                 title="刪除"
                 :aria-label="`刪除「${c.name}」`"
