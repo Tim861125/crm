@@ -76,7 +76,9 @@ try {
   check('API 層 goal 已存入', list.find(c => c.id === created.id)?.goal === '破題')
 
   // 3) note modal：有「目標」下拉且帶入現值；Info textarea 仍在
-  await page.click(`button[aria-label="開啟「目標探針」的明細"]`)
+  // Info 鈕的無障礙名稱現為「Info：開啟「X」明細」（WCAG 2.5.3 要含可見文字）。
+  // 鎖「Info：開啟「」前綴：只寫姓名會同時命中「編輯姓名「X」」等鈕而點錯
+  await page.click(`button[aria-label*="Info：開啟「目標探針」"]`)
   await sleep(800)
   const modalState = await page.evaluate(() => {
     const dialog = document.querySelector('[role="dialog"]')
@@ -89,8 +91,10 @@ try {
       open: true,
       labels,
       goalValue: goalInput?.value ?? null,
+      // 欄位標籤早在 main 上就從「Info」改名「Note」（ContactDetailModal 的 .detail-form label），
+      // 舊斷言認「Info」是腳本過期，不是功能不見：這裡要驗證的是那個 note 欄位仍是 textarea
       hasInfoTextarea: [...dialog.querySelectorAll('.detail-form label')]
-        .some(l => l.querySelector('span')?.textContent.trim() === 'Info' && l.querySelector('textarea'))
+        .some(l => l.querySelector('span')?.textContent.trim() === 'Note' && l.querySelector('textarea'))
     }
   })
   check('modal 欄位含「目標」', modalState.open && modalState.labels.includes('目標'), modalState.labels?.join('/'))

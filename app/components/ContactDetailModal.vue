@@ -21,7 +21,7 @@ import {
 // v-model 綁明細對象（null = 關閉）。
 const contact = defineModel<Contact | null>('contact', { default: null })
 
-const emit = defineEmits<{ refresh: [] }>()
+const emit = defineEmits<{ refresh: [], manageStages: [] }>()
 
 const { flash } = useNotice()
 const { confirm } = useConfirm()
@@ -108,6 +108,29 @@ async function save() {
   }
 }
 
+// ── 刪除聯絡人（手機版名單藏了刪除鈕，明細列尾是手機上唯一的刪除入口）──
+// 文案與流程比照 ContactList.removeContact；成功後直接清 contact 關閉
+// （v-model null＝關閉，比照 save() 不經 guardClose：人已刪，未儲存變更不必再問）
+async function removeContact() {
+  const c = contact.value
+  if (!c) return
+  const ok = await confirm({
+    title: '刪除名單',
+    message: `確定要刪除「${c.name}」嗎？跟進紀錄也會一起刪除。`,
+    confirmLabel: '刪除',
+    danger: true
+  })
+  if (!ok) return
+  try {
+    await api(`/api/contacts/${c.id}`, { method: 'DELETE' })
+    flash(`已刪除「${c.name}」`)
+    contact.value = null
+    emit('refresh')
+  } catch (err: unknown) {
+    flash(`刪除「${c.name}」失敗：${(err as Error)?.message}`, { error: true })
+  }
+}
+
 // ── 跟進紀錄 ─────────────────────────────────────────────────
 // 每次開啟 modal 才抓（不用 useFetch：URL 會隨開關消失，型別與 watch 都彆扭）
 const logs = ref<FollowUpLog[]>([])
@@ -140,6 +163,9 @@ watch(open, (o) => {
 // 比照清單行為：點了立即 PATCH completedStages，不入表單草稿、不受髒擋影響
 const { data: stages, refresh: refreshStages } = useFetch('/api/contact-stages', { default: () => [] })
 const stageList = computed(() => (stages.value ?? []) as ContactStage[])
+// 同 URL 的 useFetch 快取不跨元件同步（見 ContactOptionsModal 檔頭註解）：
+// 名單頁在階段管理 dialog 變更後經模板 ref 呼叫它，開著的明細 chips 才立即跟上
+defineExpose({ refreshStages })
 
 async function toggleStage(stageId: number) {
   const c = contact.value
@@ -152,7 +178,7 @@ async function toggleStage(stageId: number) {
     contact.value = updated // chips 讀 contact.completedStages，立即反映
     emit('refresh') // 名單頁同步重抓，清單的進度欄隨之更新
   } catch (err: unknown) {
-    flash(`切換階段失敗：${(err as Error)?.message}`)
+    flash(`切換階段失敗：${(err as Error)?.message}`, { error: true })
   }
 }
 
@@ -623,8 +649,25 @@ const levelItems = LEVEL_OPTIONS.map(v => ({ label: v, value: v }))
         </ol>
       </div>
 
-      <!-- 儲存：固定在 dialog 末位＋右對齊＝右下角；儲存成功後關閉 dialog（見 save()） -->
-      <div class="detail-actions">
+      <!-- 列尾動作（手機版名單藏了進度欄齒輪與刪除鈕，這裡是手機上唯一的階段管理／刪除入口）：
+           管理／刪除靠左、儲存維持右下角；佈局全用 Tailwind utility，不動 main.css。
+           儲存：固定在 dialog 末位＋右對齊＝右下角；儲存成功後關閉 dialog（見 save()） -->
+      <div class="detail-actions flex flex-wrap items-center justify-end gap-2">
+        <span class="mr-auto flex flex-wrap items-center gap-2">
+          <RButton
+            aria-haspopup="dialog"
+            @click="emit('manageStages')"
+          >
+            管理進度階段
+          </RButton>
+          <RButton
+            variant="danger"
+            :aria-label="`刪除此聯絡人「${contact.name}」`"
+            @click="removeContact"
+          >
+            刪除此聯絡人
+          </RButton>
+        </span>
         <RButton
           variant="primary"
           :disabled="saving"

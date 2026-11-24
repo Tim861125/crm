@@ -20,11 +20,11 @@
 }
 
 :root {
-  color-scheme: light dark;
   --paper: #fdfaf3;
   --ink: #2b2b2b;
   --accent: #e4572e;
-  --accent-strong: #c8432b; /* 白字／小字用深色：對紙面與白字皆 ≥4.5:1 */
+  --accent-strong: #c8432b; /* 當文字：對紙面 ≥4.6:1；它作實心底承載文字時，文字走 --on-accent（4.69:1） */
+  --on-accent: #fdfaf3; /* 落在 accent-strong 實心底上的文字色（主按鈕／選中 tab／勾勾）：本主題紙色 */
   --accent-soft: #fde2c8;
   --muted: #6b6353; /* ≥4.5:1 on paper & stage-chip gray（WCAG AA） */
   --green: #dcebd3;
@@ -47,10 +47,12 @@
 /* 暗色「深夜書桌」：暖黑底＋同色温陰影；只覆寫色調記號，手繪風／編排不動。
    accent 對 #26211b 的對比 ≥4.5:1；mark 三色降飽和降亮度維持「淺色彩筆落在暗底」 */
 html.dark {
+  color-scheme: dark; /* 只在使用者選暗色時才讓原生控件／捲軸走暗色（亮色見下方 html 規則） */
   --paper: #26211b;
   --ink: #ece5d8;
   --accent: #ff7a4d;
-  --accent-strong: #ffa278; /* 取代亮色的深紅角色：暗底上承載白字/链接/选中态，白字对其 ≥4.5:1 */
+  --accent-strong: #ffa278; /* 取代亮色的深紅角色：暗底上當文字／底色 ≥8:1；其上的文字改走 --on-accent（暗色紙色，8.13:1；白字只有 1.96 不可用） */
+  --on-accent: #26211b;
   --accent-soft: #59341f;
   --muted: #b3a891;
   --green: #3b4f33;
@@ -64,7 +66,8 @@ html.dark {
 }
 
 * { box-sizing: border-box; }
-html { min-width: 320px; background: var(--paper); }
+/* color-scheme 預設亮色；html.dark（同元素、特異度更高）選暗色時原生控件才跟隨 */
+html { min-width: 320px; background: var(--paper); color-scheme: light; }
 body { margin: 0; min-width: 320px; background: var(--paper); font-size: 17px; line-height: 1.55; }
 button, input, select, textarea { font: inherit; color: inherit; }
 a { color: inherit; }
@@ -81,7 +84,7 @@ button:disabled { cursor: not-allowed; opacity: .55; }
 /* vertical-align: middle：inline-flex 預設 baseline 對齊，文字鈕（文字基線）與 icon 鈕（svg 底緣）
    基準不同會錯開；改 middle 讓相鄰 RButton 以垂直中线对齐 */
 .r-button__frame { display: inline-flex; vertical-align: middle; }
-.r-button--primary { color: #fff; }
+.r-button--primary { color: var(--on-accent); }
 .r-button--default { color: var(--ink); }
 .r-button--danger { color: var(--danger-deep); }
 /* icon-only RButton：壓縮 padding 讓手繪框貼著圖示（min-height 仍由 .r-button 守住觸控目標） */
@@ -145,7 +148,8 @@ button:disabled { cursor: not-allowed; opacity: .55; }
 .r-cal__num { position: relative; padding: 1px 5px; }
 .r-cal__cell[data-outside-view] { opacity: .35; }
 .r-cal__cell[data-disabled] { color: var(--muted); opacity: .38; cursor: not-allowed; }
-.r-cal__cell[data-selected] .r-cal__num { color: var(--accent-strong); font-weight: 700; }
+/* 選中日走手繪圈＋粗體表達；數字改用墨色（accent-strong 在 soft 底上對比不足） */
+.r-cal__cell[data-selected] .r-cal__num { color: var(--ink); font-weight: 700; }
 /* 選中日的 RoughFrame 手繪圈（ellipse）：裝飾層不吃滑鼠事件 */
 .r-cal__ring { position: absolute; inset: 2px 1px; pointer-events: none; }
 /* 今日：數字下方一顆墨點（已選中時改由手繪圈表達） */
@@ -173,7 +177,7 @@ button:disabled { cursor: not-allowed; opacity: .55; }
 .r-pop-menu__viewport::-webkit-scrollbar { width: 8px; }
 .r-pop-menu__viewport::-webkit-scrollbar-track { background: transparent; margin: 6px 0; }
 .r-pop-menu__viewport::-webkit-scrollbar-thumb { background: rgb(var(--ink-rgb) / 28%); border-radius: 999px; }
-.r-pop-menu__item { position: relative; display: flex; align-items: center; gap: 8px; min-height: 40px; padding: 7px 12px 7px 32px; border-radius: 8px; cursor: pointer; user-select: none; transition: background-color .12s ease; }
+.r-pop-menu__item { position: relative; display: flex; align-items: center; gap: 8px; min-height: 40px; padding: 7px 12px 7px 32px; border-radius: 8px; cursor: pointer; user-select: none; overflow-wrap: anywhere; transition: background-color .12s ease; }
 /* 鍵盤巡覽的列高亮走 data-highlighted（非 :hover） */
 .r-pop-menu__item[data-highlighted] { background: var(--accent-soft); outline: none; }
 .r-pop-menu__item[data-disabled] { color: var(--muted); cursor: not-allowed; }
@@ -183,6 +187,9 @@ button:disabled { cursor: not-allowed; opacity: .55; }
 /* creatable combobox 的「＋ 新增」列：加號佔勾勾位，未可按時（空白／已存在）走 disabled 灰 */
 .r-pop-menu__plus { position: absolute; left: 9px; display: flex; color: var(--accent-strong); font-weight: 700; }
 .r-pop-menu__item--create { color: var(--accent-strong); }
+/* 高亮時落 accent-soft 底：accent-strong 文字只有 3.93:1（WCAG AA 不足）→ 改墨色，底色本身表達選取 */
+.r-pop-menu__item--create[data-highlighted] { color: var(--ink); }
+.r-pop-menu__item--create[data-highlighted] .r-pop-menu__plus { color: var(--ink); }
 .r-pop-menu__item--create[data-disabled] { color: var(--muted); cursor: default; }
 .r-pop-menu__item--create[data-disabled] .r-pop-menu__plus { color: var(--muted); }
 /* deletable combobox 選項右緣的 ×：安靜小圓鈕，hover／focus 才染 danger 紅 */
@@ -192,7 +199,7 @@ button:disabled { cursor: not-allowed; opacity: .55; }
 .r-select .r-pop-menu__check { display: none; }
 .r-choice { display: inline-flex; align-items: center; gap: 8px; min-height: 36px; cursor: pointer; }
 /* reka Checkbox／RadioGroup 的方框（button role=checkbox／radio），視覺由 data-state 驅動 */
-.r-choice__box { display: inline-flex; flex: none; align-items: center; justify-content: center; width: 18px; height: 18px; padding: 0; border: 1.5px solid var(--ink); border-radius: 5px; background: transparent; color: #fff; }
+.r-choice__box { display: inline-flex; flex: none; align-items: center; justify-content: center; width: 18px; height: 18px; padding: 0; border: 1.5px solid var(--ink); border-radius: 5px; background: transparent; color: var(--on-accent); }
 .r-choice__box[data-state='checked'] { border-color: var(--accent-strong); background: var(--accent-strong); }
 .r-choice__box--radio { border-radius: 50%; }
 .r-choice__box--radio[data-state='checked'] { background: transparent; }
@@ -204,7 +211,7 @@ button:disabled { cursor: not-allowed; opacity: .55; }
 /* ── reka Dialog（原生日 <dialog> 改寫）──
    overlay＝舊 ::backdrop；開關動畫看 [data-state]（reka Presence 等 animationend 才卸載）；
    置中以 transform 完成（dialog-in 關鍵格須帶同一 translate 位移，避免動畫頂掉置中） */
-.r-dialog-overlay { position: fixed; inset: 0; z-index: 40; background: rgb(var(--ink-rgb) / 48%); }
+.r-dialog-overlay { position: fixed; inset: 0; z-index: 40; background: var(--dialog-overlay); }
 .r-dialog-overlay[data-state='open'] { animation: fade-in .2s ease; }
 .r-dialog { position: fixed; left: 50%; top: 50%; transform: translate(-50%, -50%); z-index: 41; display: flex; flex-direction: column; overflow: hidden; width: min(560px, calc(100vw - 32px)); max-height: calc(100dvh - 32px); padding: 26px; border: 0; background: var(--paper); color: var(--ink); }
 .r-dialog > .rough-frame, .r-dialog > .rough-frame > .rough-frame__content { display: flex; flex-direction: column; min-height: 0; }
@@ -215,18 +222,18 @@ button:disabled { cursor: not-allowed; opacity: .55; }
 .r-dialog__close { position: absolute; top: 28px; right: 28px; z-index: 1; display: inline-flex; align-items: center; justify-content: center; width: 42px; height: 42px; padding: 0; border: 0; border-radius: 50%; background: transparent; color: var(--muted); transition: color .15s ease, background-color .15s ease; }
 .r-dialog__close svg { display: block; width: 20px; height: 20px; }
 .r-dialog__close:hover, .r-dialog__close:focus-visible { color: var(--danger-deep); background: rgb(var(--ink-rgb) / 8%); }
-/* 標題預留叉叉的寬度，長標題末字才不會藏到鈕底下 */
-.r-dialog__content > h2 { margin: 0 0 12px; padding-right: 46px; }
+/* 標題預留叉叉的寬度，長標題末字才不會藏到鈕底下；超長計畫名強制斷字撐不破 dialog */
+.r-dialog__content > h2 { margin: 0 0 12px; padding-right: 46px; overflow-wrap: anywhere; }
 /* ── 全域確認框（ConfirmDialog.vue，reka AlertDialog）──
    須疊在一般 dialog（40/41）與彈出選單（60）之上：明細 modal 的未儲存守門會蓋在 dialog 上 */
-.r-confirm-overlay { position: fixed; inset: 0; z-index: 70; background: rgb(var(--ink-rgb) / 48%); }
+.r-confirm-overlay { position: fixed; inset: 0; z-index: 70; background: var(--dialog-overlay); }
 .r-confirm-overlay[data-state='open'] { animation: fade-in .2s ease; }
 .r-confirm { position: fixed; left: 50%; top: 50%; transform: translate(-50%, -50%); z-index: 71; display: flex; flex-direction: column; overflow: hidden; width: min(440px, calc(100vw - 32px)); max-height: calc(100dvh - 32px); padding: 26px; border: 0; background: var(--paper); color: var(--ink); }
 .r-confirm[data-state='open'] { animation: dialog-in .2s var(--ease-out); }
 .r-confirm > .rough-frame, .r-confirm > .rough-frame > .rough-frame__content { display: flex; flex-direction: column; min-height: 0; }
 .r-confirm__box { min-height: 0; margin: 4px; padding: 14px 16px 14px 18px; overflow-y: auto; overscroll-behavior: contain; }
 .r-confirm__title { margin: 0 0 8px; padding-right: 12px; font-size: 1.15rem; }
-.r-confirm__message { margin: 0; color: var(--ink); line-height: 1.6; }
+.r-confirm__message { margin: 0; color: var(--ink); line-height: 1.6; overflow-wrap: anywhere; }
 /* 動作列：取消在左、確認在右；確認鈕 danger 時為紅色手繪框，與破壞性語意一致 */
 .r-confirm__actions { display: flex; justify-content: flex-end; gap: 10px; margin-top: 22px; }
 /* 對話框內的捲動區：細捲軸、與手繪邊框保持距離，上下虛線提示可捲動 */
@@ -248,7 +255,7 @@ button:disabled { cursor: not-allowed; opacity: .55; }
 .r-badge--red { background: var(--red); }
 .r-tabs { display: flex; flex-wrap: wrap; gap: 8px; }
 .r-tab { min-height: 42px; padding: 7px 14px; border: 0; background: transparent; color: var(--ink); }
-.r-tab[aria-selected='true'] { color: #fff; }
+.r-tab[aria-selected='true'] { color: var(--on-accent); }
 
 /* ── 版面骨架：頁首導覽 ＋ 內容區 ─────────────────────────────── */
 .app-shell { min-height: 100vh; min-height: 100dvh; }
@@ -264,8 +271,8 @@ button:disabled { cursor: not-allowed; opacity: .55; }
 .site-nav a { padding: 7px 10px; text-decoration: none; white-space: nowrap; }
 .site-nav a:hover { text-decoration: underline; text-decoration-color: var(--accent-strong); text-decoration-thickness: 2px; }
 .site-nav a.is-active { color: var(--accent-strong); font-weight: 700; }
-/* 亮／暗切換鈕（ThemeToggle.vue）：比對側導覽文字的 44px 命中區 */
-.theme-toggle { display: inline-flex; align-items: center; justify-content: center; width: 40px; height: 40px; margin-left: 6px; border: 0; border-radius: 10px; background: transparent; color: var(--muted); transition: color .15s ease, background-color .15s ease; }
+/* 亮／暗切換鈕（ThemeToggle.vue）：44×44 觸控目標（Apple HIG／WCAG 2.2） */
+.theme-toggle { display: inline-flex; align-items: center; justify-content: center; width: 44px; height: 44px; margin-left: 6px; border: 0; border-radius: 10px; background: transparent; color: var(--muted); transition: color .15s ease, background-color .15s ease; }
 .theme-toggle:hover { color: var(--accent-strong); background: rgb(var(--ink-rgb) / 6%); }
 /* max-width 1190＝名單表常用寬度（固定欄 878＋進度欄 ≒264）＋padding 48－緩衝調整：一般階段數量下總名單在桌面寬度不出現橫向滾輪（與 .site-header__inner 同寬對齊）；階段多或名稱很長時由 --stages-w 撐寬表格、整表橫滾 */
 .page-content { max-width: 1190px; margin: 0 auto; padding: 36px 24px; }
@@ -299,13 +306,14 @@ button:disabled { cursor: not-allowed; opacity: .55; }
 /* 彈窗（reka Dialog 以 data-state 標示開關；overlay 的淡入另見檔頭 dialog 區段） */
 .r-dialog[data-state='open'] { animation: dialog-in .2s var(--ease-out); }
 
-/* 提示訊息 */
+/* 提示訊息：exit 比 enter 快（比照 page-leave .12s）；z-index 壓在確認框（70/71）之上，
+   容器 pointer-events:none（空容器不擋點擊），span 出現時可圈選／操作 */
 .toast-enter-active { transition: opacity .2s var(--ease-out), transform .2s var(--ease-out); }
-.toast-leave-active { transition: opacity .25s ease-in, transform .25s ease-in; }
+.toast-leave-active { transition: opacity .12s ease-in, transform .12s ease-in; }
 .toast-enter-from, .toast-leave-to { opacity: 0; transform: translateY(10px); }
 .toast-leave-active { position: absolute; left: 0; right: 0; }
-.site-toast { position: fixed; left: 50%; bottom: 24px; z-index: 30; max-width: calc(100vw - 32px); transform: translateX(-50%); pointer-events: none; }
-.site-toast span { display: block; padding: 10px 22px; background: var(--green); border: 1.5px solid var(--ink); font-weight: 700; }
+.site-toast { position: fixed; left: 50%; bottom: 24px; z-index: 80; max-width: calc(100vw - 32px); transform: translateX(-50%); pointer-events: none; }
+.site-toast span { display: block; padding: 10px 22px; background: var(--green); border: 1.5px solid var(--ink); font-weight: 700; pointer-events: auto; }
 .site-toast span.is-error { background: var(--red); color: var(--danger-deep); }
 
 /* 互動回饋 */
@@ -356,7 +364,8 @@ button:disabled { cursor: not-allowed; opacity: .55; }
 .list-scroll .cell-input { width: 100%; }
 /* 欄頭管理齒輪（進度）：與欄篩選鈕並排，齒輪仍是階段管理唯一入口 */
 .th-manage { display: inline-flex; align-items: center; gap: 3px; }
-.th-gear { display: inline-flex; align-items: center; justify-content: center; padding: 4px; border: 0; border-radius: 6px; background: transparent; color: var(--muted); cursor: pointer; }
+/* min 24×24：svg(15)＋padding(8) 只有 23px，補到 WCAG 2.2 最小目標尺寸 */
+.th-gear { display: inline-flex; align-items: center; justify-content: center; min-width: 24px; min-height: 24px; padding: 4px; border: 0; border-radius: 6px; background: transparent; color: var(--muted); cursor: pointer; }
 .th-gear svg { display: block; width: 15px; height: 15px; }
 .th-gear:hover, .th-gear:focus-visible { color: var(--accent-strong); background: rgb(var(--ink-rgb) / 6%); }
 /* 欄頭篩選鈕（ColumnFilterMenu）：欄位標題本身就是 trigger，漏斗描線鈕當 affordance；
@@ -436,7 +445,7 @@ html.dark .stage-chip.is-done { color: var(--paper); }
 .log-item { display: flex; align-items: flex-start; gap: 12px; padding: 10px 0; border-bottom: 1px dashed rgb(var(--ink-rgb) / 20%); }
 .log-item__body { flex: 1; min-width: 0; }
 .log-ago { margin: 0 0 2px; color: var(--muted); font-size: .82rem; }
-.log-content { margin: 0; white-space: pre-wrap; }
+.log-content { margin: 0; white-space: pre-wrap; overflow-wrap: anywhere; }
 /* 單筆紀錄 inline 編輯：日期／內容點了就變輸入框（比照名單頁 cell-edit 互動） */
 .log-date-edit { font: inherit; color: inherit; cursor: pointer; }
 .log-content-edit { width: 100%; text-align: left; white-space: pre-wrap; }

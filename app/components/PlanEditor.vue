@@ -9,7 +9,7 @@ import RDateInput from './rough/RDateInput.vue'
 import RRadio from './rough/RRadio.vue'
 import RRadioGroup from './rough/RRadioGroup.vue'
 import { api, timeAgo, type Contact, type PlanWithStats } from '../utils/crm'
-import { isStalled, PLAN_STATUS_META, type PlanStatus } from '#shared/utils/planEval'
+import { isStalled, PLAN_STATUS_META, snapshot, type PlanForm, type PlanStatus } from '#shared/utils/planEval'
 
 // 計畫編輯 dialog（新增／編輯共用）：現象→方法→圈人→期間→狀態。
 // 現象與方法用 creatable combobox：建議只是範本，打的字就是值，不必落庫選項表。
@@ -18,6 +18,7 @@ const open = defineModel<boolean>('open', { default: false })
 const emit = defineEmits<{ saved: [] }>()
 
 const { flash } = useNotice()
+const { confirm } = useConfirm()
 
 // 現象／方法建議範本
 const INSIGHT_PRESETS = ['不讀不回', '已破題但沒下文', '約好又失約', '加了沒聊']
@@ -26,20 +27,11 @@ const METHOD_PRESETS = ['發廣告', 'LINE 訊息', 'IG 限動', '群發貼文',
 const STATUS_OPTIONS = (Object.keys(PLAN_STATUS_META) as PlanStatus[])
   .map(v => ({ value: v, label: PLAN_STATUS_META[v].label }))
 
-interface FormState {
-  name: string
-  insight: string
-  method: string
-  content: string
-  audience: number[]
-  startDate: string
-  endDate: string
-  status: PlanStatus
-}
-function blankForm(): FormState {
+// 表單草稿（欄位型別與 snapshot 共用 PlanForm：改欄位一定會在兩處同時看到）
+function blankForm(): PlanForm {
   return { name: '', insight: '', method: '', content: '', audience: [], startDate: '', endDate: '', status: 'planning' }
 }
-function formFromPlan(p: PlanWithStats): FormState {
+function formFromPlan(p: PlanWithStats): PlanForm {
   return {
     name: p.name,
     insight: p.insight ?? '',
@@ -52,11 +44,31 @@ function formFromPlan(p: PlanWithStats): FormState {
   }
 }
 
-const form = ref<FormState>(blankForm())
+const form = ref<PlanForm>(blankForm())
+
+// 未儲存變更偵測：關閉（Esc／背景／關閉鈕／取消）前以全域確認框提示，避免誤丟編輯（比照 ContactDetailModal）。
+// 開窗當下把草稿快照成 baseline，之後 snapshot 與之比對即知髒不髒；audience 比對前排序，重排不誤判。
+const baseline = ref('')
+const dirty = computed(() => snapshot(form.value) !== baseline.value)
+function guardClose(): boolean | Promise<boolean> {
+  if (!dirty.value) return true
+  return confirm({
+    title: '未儲存的修改',
+    message: '還有未儲存的修改，確定要關閉嗎？未儲存的內容會遺失。',
+    confirmLabel: '放棄修改',
+    danger: true
+  })
+}
+// 取消鈕與 dialog 的關閉途徑走同一個守門；髒時先確認，true 才真的關
+async function cancel() {
+  if (await guardClose()) open.value = false
+}
+
 watch(open, (isOpen) => {
   if (!isOpen) return
   form.value = props.plan ? formFromPlan(props.plan) : blankForm()
   errors.value = []
+  baseline.value = snapshot(form.value)
 })
 
 // ── 驗證：送出時檢查必填；錯誤摘要 role="alert" 置頂並移轉焦點 ──
@@ -123,6 +135,7 @@ async function submit() {
       flash(`計畫擬好了 ✏️「${form.value.name}」`)
     }
     emit('saved')
+    baseline.value = snapshot(form.value) // 剛存過的內容不算未儲存變更；成功關閉直接改 open，不經守門
     open.value = false
   } catch (err: unknown) {
     errors.value = [`儲存失敗：${(err as Error)?.message ?? '請再試'}`]
@@ -137,6 +150,7 @@ async function submit() {
   <RDialog
     :open="open"
     :title="plan ? '編輯計畫' : '擬新計畫'"
+    :guard="guardClose"
     @update:open="open = $event"
   >
     <form
@@ -281,7 +295,7 @@ async function submit() {
       <div class="plan-form__actions span-2">
         <RButton
           type="button"
-          @click="open = false"
+          @click="cancel"
         >
           取消
         </RButton>

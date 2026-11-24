@@ -8,7 +8,8 @@ import { PLAN_STATUS_META, planWindow, type PlanStatus } from '#shared/utils/pla
 
 // 一張計畫卡：視覺優先——現象→方法用圖示串流，覆核窗內成效用圓環，
 // 數據是圖示＋tabular 數字，圈選對象是頭像堆疊。操作由父層處理。
-const props = defineProps<{ plan: PlanWithStats, contacts: Contact[], today: string }>()
+// busy：父層該張卡的狀態 PATCH 還在路上 → 流轉鈕 disabled＋aria-busy，給人「收到了」的回饋
+const props = defineProps<{ plan: PlanWithStats, contacts: Contact[], today: string, busy?: boolean }>()
 const emit = defineEmits<{
   edit: [plan: PlanWithStats]
   status: [plan: PlanWithStats, status: PlanStatus]
@@ -57,9 +58,10 @@ const dash = computed(() => `${(props.plan.stats.rate / 100) * CIRC} ${CIRC}`)
   <RoughFrame class="plan-card">
     <div class="plan-card__content">
       <div class="plan-card__head">
-        <h3 class="plan-card__title">
+        <!-- 頁面 h1 之下用 h2，維持標題層級（外觀由 .plan-card__title 決定，不隨標籤變） -->
+        <h2 class="plan-card__title">
           {{ plan.name }}
-        </h3>
+        </h2>
         <RBadge :tone="meta.tone">
           {{ meta.label }}
         </RBadge>
@@ -204,29 +206,40 @@ const dash = computed(() => `${(props.plan.stats.rate / 100) * CIRC} ${CIRC}`)
       </p>
 
       <div class="plan-card__actions">
+        <!-- 流轉請求進行中：只鎖這幾個流轉鈕（編輯／刪除不受影響），aria-busy 讓報讀器也唸得出「處理中」 -->
         <RButton
           v-if="plan.status === 'planning'"
           variant="primary"
+          :disabled="busy"
+          :aria-busy="busy"
           @click="emit('status', plan, 'active')"
         >
-          開始執行
+          {{ busy ? '處理中…' : '開始執行' }}
         </RButton>
         <template v-else-if="plan.status === 'active'">
-          <RButton @click="emit('status', plan, 'planning')">
-            收回
+          <RButton
+            :disabled="busy"
+            :aria-busy="busy"
+            @click="emit('status', plan, 'planning')"
+          >
+            {{ busy ? '處理中…' : '收回' }}
           </RButton>
           <RButton
             variant="primary"
+            :disabled="busy"
+            :aria-busy="busy"
             @click="emit('status', plan, 'done')"
           >
-            完成
+            {{ busy ? '處理中…' : '完成' }}
           </RButton>
         </template>
         <RButton
           v-else
+          :disabled="busy"
+          :aria-busy="busy"
           @click="emit('status', plan, 'active')"
         >
-          重新執行
+          {{ busy ? '處理中…' : '重新執行' }}
         </RButton>
 
         <span class="plan-card__spacer" />

@@ -63,6 +63,35 @@ export function planWindow(plan: EvalPlan): { from: string, to: string | null } 
   return { from, to: plan.endDate }
 }
 
+// 計畫表單欄位（PlanEditor 的新增／編輯草稿）。
+// snapshot 以它做「未儲存變更」比對：新增可編輯欄位時記得同步補進 snapshot。
+export interface PlanForm {
+  name: string
+  insight: string
+  method: string
+  content: string
+  audience: number[]
+  startDate: string
+  endDate: string
+  status: PlanStatus
+}
+
+// 表單快照：序列化成可比對的字串，髒＝snapshot(目前草稿) ≠ 開窗時的 baseline。
+// audience 是 id 的「集合」：順序只是 preset 鈕與勾選的累積順序，重排不是使用者改了內容，
+// 所以先排序再序列化，否則單純重排會被誤判成未儲存變更。
+export function snapshot(form: PlanForm): string {
+  return JSON.stringify([
+    form.name,
+    form.insight,
+    form.method,
+    form.content,
+    [...form.audience].sort((a, b) => a - b),
+    form.startDate,
+    form.endDate,
+    form.status
+  ])
+}
+
 export interface PlanStats {
   // 圈選人數
   audienceCount: number

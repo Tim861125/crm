@@ -70,7 +70,9 @@ try {
   check('多了一筆今天的跟進紀錄', todays.length === 1 && todays[0].content === '已跟進', JSON.stringify(todays))
 
   // 3) note modal 時間軸看得到那一筆
-  await page.click(`button[aria-label="開啟「已跟進探針」的明細"]`)
+  // Info 鈕的無障礙名稱現為「Info：開啟「X」明細」（WCAG 2.5.3 要含可見文字）。
+  // 必須鎖「Info：開啟「」前綴：只寫姓名會同時命中「編輯姓名「X」」「刪除「X」」等鈕，page.click 會點到編輯姓名
+  await page.click(`button[aria-label*="Info：開啟「已跟進探針」"]`)
   await sleep(800)
   const modal = await page.evaluate(() => {
     const dialog = document.querySelector('[role="dialog"]')
@@ -86,8 +88,16 @@ try {
   await page.keyboard.press('Escape')
   await sleep(500)
 
-  // 4) 取消勾選 → 今天的紀錄刪除、lastFollowUp 回到 null
+  // 4) 取消勾選 → 先跑 confirm（ContactList.toggleFollowedUp 的「取消今日跟進」確認框），
+  //    要按確認鈕「取消跟進」才會真的刪今天的紀錄；只點 checkbox 會停在確認框上，永遠不會取消
   await page.click(boxSel)
+  await sleep(600)
+  const confirmed = await page.evaluate(() => {
+    const btn = [...document.querySelectorAll('.r-confirm button')].find(b => b.textContent.trim() === '取消跟進')
+    if (btn) btn.click()
+    return !!btn
+  })
+  check('取消勾選先彈出確認框且找到「取消跟進」鈕', confirmed)
   await sleep(900)
   check('取消後 checkbox 變未勾', (await boxState()) === 'unchecked', await boxState())
   check('今天的紀錄已刪除', (await getLogs()).filter(l => l.date === today).length === 0)

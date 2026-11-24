@@ -167,6 +167,15 @@ const stats = computed(() => {
 // ── 明細 modal／進度階段管理 dialog（地點增刪已改為下拉內直接處理）──
 const detailContact = ref<Contact | null>(null)
 const stagesOpen = ref(false)
+const detailModal = ref<InstanceType<typeof ContactDetailModal> | null>(null)
+
+// 階段管理 dialog 成功變更後：名單與明細各自的 useFetch 快取不跨元件同步
+// （見 ContactOptionsModal 檔頭註解），兩邊都要刷新——明細那側直接叫它自己
+// 暴露的 refreshStages，不在這裡重複抓
+async function onStagesChanged() {
+  await refreshStages()
+  await detailModal.value?.refreshStages()
+}
 
 // ── patch 工具：樂觀更新 + 失敗回滾 ──────────────────────────
 // 注意：useFetch 預設 shallow，就地改 items（contacts.value[i] = x）不會觸發畫面更新
@@ -392,8 +401,13 @@ function onEditKeydown(e: KeyboardEvent) {
         </colgroup>
         <thead>
           <tr>
-            <th>姓名</th>
-            <th class="col-hide-sm">
+            <th scope="col">
+              姓名
+            </th>
+            <th
+              class="col-hide-sm"
+              scope="col"
+            >
               <span class="th-manage">
                 <ColumnFilterMenu
                   v-model="filters.stage"
@@ -429,7 +443,10 @@ function onEditKeydown(e: KeyboardEvent) {
                 </button>
               </span>
             </th>
-            <th class="col-hide-sm">
+            <th
+              class="col-hide-sm"
+              scope="col"
+            >
               <ColumnFilterMenu
                 v-model="filters.location"
                 label="地點"
@@ -437,7 +454,10 @@ function onEditKeydown(e: KeyboardEvent) {
                 :active="filters.location.length > 0"
               />
             </th>
-            <th class="col-hide-sm">
+            <th
+              class="col-hide-sm"
+              scope="col"
+            >
               <ColumnFilterMenu
                 v-model="filters.contact"
                 label="聯絡"
@@ -445,7 +465,7 @@ function onEditKeydown(e: KeyboardEvent) {
                 :active="filters.contact.length > 0"
               />
             </th>
-            <th>
+            <th scope="col">
               <ColumnFilterMenu
                 v-model="filters.goal"
                 label="目標"
@@ -453,7 +473,10 @@ function onEditKeydown(e: KeyboardEvent) {
                 :active="filters.goal.length > 0"
               />
             </th>
-            <th class="col-hide-sm">
+            <th
+              class="col-hide-sm"
+              scope="col"
+            >
               <ColumnFilterMenu
                 v-model="filters.freq"
                 label="跟進"
@@ -461,7 +484,7 @@ function onEditKeydown(e: KeyboardEvent) {
                 :active="filters.freq.length > 0"
               />
             </th>
-            <th>
+            <th scope="col">
               <ColumnFilterMenu
                 v-model="filters.followed"
                 label="已跟進"
@@ -469,7 +492,10 @@ function onEditKeydown(e: KeyboardEvent) {
                 :active="filters.followed.length > 0"
               />
             </th>
-            <th />
+            <!-- 動作欄無可見標題，補 SR 文字，避免螢幕reader唸成「未命名欄位」 -->
+            <th scope="col">
+              <span class="sr-only">操作</span>
+            </th>
           </tr>
         </thead>
         <tbody>
@@ -680,7 +706,7 @@ function onEditKeydown(e: KeyboardEvent) {
             <td style="white-space: nowrap">
               <RButton
                 title="Info"
-                :aria-label="`開啟「${c.name}」的明細`"
+                :aria-label="`Info：開啟「${c.name}」明細`"
                 @click="detailContact = c"
               >
                 Info
@@ -739,7 +765,7 @@ function onEditKeydown(e: KeyboardEvent) {
               <button
                 type="button"
                 class="link-button"
-                @click="refreshContacts()"
+                @click="refreshContacts().catch(() => {})"
               >
                 重新整理
               </button>
@@ -773,17 +799,20 @@ function onEditKeydown(e: KeyboardEvent) {
       </table>
     </div>
 
-    <!-- 明細 modal（v-model:contact：子元件 defineModel('contact') 的命名對應） -->
+    <!-- 明細 modal（v-model:contact：子元件 defineModel('contact') 的命名對應）；
+         manage-stages：手機版名單藏了進度欄齒輪，明細列尾鈕由這裡開同一個管理 dialog -->
     <ContactDetailModal
+      ref="detailModal"
       v-model:contact="detailContact"
       @refresh="refreshContacts"
+      @manage-stages="stagesOpen = true"
     />
 
-    <!-- 管理 dialog：進度階段由欄位標題開啟（地點改在編輯下拉內增刪）；
-         refresh 事件驅動名單頁刷新（見 ContactOptionsModal 檔內說明） -->
+    <!-- 管理 dialog：進度階段由欄位標題或明細列尾鈕開啟（地點改在編輯下拉內增刪）；
+         refresh 事件驅動名單頁與開著的明細刷新（見 ContactOptionsModal 檔內說明） -->
     <ContactOptionsModal
       v-model:open="stagesOpen"
-      @refresh="refreshStages"
+      @refresh="onStagesChanged"
     />
   </div>
 </template>

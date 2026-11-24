@@ -21,7 +21,9 @@ const { flash } = useNotice()
 const { confirm } = useConfirm()
 
 // ── 資料 ─────────────────────────────────────────────────────
-const { data: prospects, status: prospectsStatus, refresh: refreshProspects } = useFetch<Prospect[]>('/api/prospects', { default: () => [] })
+// error 一定要接出來：不接的話抓取失敗時 prospects 是空的 []，四張卡會顯示成
+// 「還空的，挑人放進來」，把服務異常誤當成還沒放人（比照 ContactList 的失敗分支）
+const { data: prospects, status: prospectsStatus, error: prospectsError, refresh: refreshProspects } = useFetch<Prospect[]>('/api/prospects', { default: () => [] })
 const { data: contacts, refresh: refreshContacts } = useFetch<Contact[]>('/api/contacts', { default: () => [] })
 
 // 頁面 tick 變動（明細 modal 儲存後）→ 全部重抓
@@ -46,6 +48,9 @@ const picking = ref<Record<ProspectSection, string>>({
 const contactItems = computed(() =>
   (contacts.value || []).map(c => ({ label: c.name, value: String(c.id) }))
 )
+
+// 四個區塊各有一顆挑人 select，id 依區塊固定，讓 sr-only label 的 for 對得上去
+const pickerId = (section: ProspectSection) => `prospect-pick-${section}`
 
 // 等級徽章：SSR 紅、SR 黃、其他灰
 function levelTone(level: string | null): 'red' | 'yellow' | 'gray' {
@@ -118,15 +123,20 @@ async function patchContact(c: Contact, key: 'level' | 'status', value: string) 
         <span class="section-hint">{{ PROSPECT_SECTION_META[section].hint }}</span>
       </div>
 
-      <!-- 新增列 -->
+      <!-- 新增列：select 只有 placeholder 不算名字，補一個 sr-only 的真實 label
+           （RSelect 沒給 id 時會自行生成，這裡固定住才能用 for 對到 trigger） -->
       <form
         class="inline-form"
         @submit.prevent="addRow(section)"
       >
+        <label
+          class="sr-only"
+          :for="pickerId(section)"
+        >加入「{{ PROSPECT_SECTION_META[section].title }}」區塊的名單對象</label>
         <RSelect
+          :id="pickerId(section)"
           v-model="picking[section]"
           placeholder="挑一位名單對象…"
-          :aria-label="`加入「${PROSPECT_SECTION_META[section].title}」區塊的名單對象`"
           :options="contactItems"
         />
         <RButton
@@ -215,6 +225,22 @@ async function patchContact(c: Contact, key: 'level' | 'status', value: string) 
                 class="empty-cell"
               >
                 載入中…
+              </td>
+            </tr>
+            <!-- 抓取失敗 ≠ 區塊還空著：這裡要讓人看見失敗並能重抓（比照 ContactList 的失敗分支） -->
+            <tr v-else-if="prospectsError">
+              <td
+                colspan="6"
+                class="empty-cell"
+              >
+                名單載入失敗
+                <button
+                  type="button"
+                  class="link-button"
+                  @click="refreshProspects().catch(() => {})"
+                >
+                  重新整理
+                </button>
               </td>
             </tr>
             <tr v-else-if="!bySection(section).length">

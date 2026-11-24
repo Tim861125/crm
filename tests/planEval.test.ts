@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { isStalled, planStats, planWindow, silentDays, type EvalContact, type EvalPlan } from '../shared/utils/planEval'
+import { isStalled, planStats, planWindow, silentDays, snapshot, type EvalContact, type EvalPlan, type PlanForm } from '../shared/utils/planEval'
 
 // 評估純函式單元測試：停擺判定、覆核窗、計畫統計邊界
 const TODAY = '2026-11-20'
@@ -54,6 +54,44 @@ describe('planWindow（覆核窗）', () => {
   })
   it('只有迄日：起仍是建檔日', () => {
     expect(planWindow(p({ endDate: '2026-11-30' }))).toEqual({ from: '2026-11-05', to: '2026-11-30' })
+  })
+})
+
+describe('snapshot（表單快照，PlanEditor 未儲存變更偵測用）', () => {
+  const f = (over: Partial<PlanForm> = {}): PlanForm => ({
+    name: '不讀不回重啟計畫',
+    insight: '不讀不回',
+    method: 'LINE 訊息',
+    content: '投一則軟性貼文試水溫',
+    audience: [3, 1, 2],
+    startDate: '2026-11-01',
+    endDate: '2026-11-30',
+    status: 'planning',
+    ...over
+  })
+  const base = snapshot(f())
+
+  it('相同內容 → 相同快照', () => {
+    expect(snapshot(f())).toBe(base)
+    expect(snapshot(f({ audience: [3, 1, 2] }))).toBe(base)
+  })
+  it('任何單一欄位改動 → 快照不同', () => {
+    const edits: Partial<PlanForm>[] = [
+      { name: '換個名稱' },
+      { insight: '約好又失約' },
+      { method: '發廣告' },
+      { content: '換一套話術' },
+      { audience: [3, 1, 2, 7] }, // 多圈一人
+      { startDate: '2026-11-02' },
+      { endDate: '2026-12-05' },
+      { status: 'active' }
+    ]
+    for (const e of edits)
+      expect(snapshot({ ...f(), ...e })).not.toBe(base)
+  })
+  it('audience 只有順序不同 → 相同快照（集合語意：重排不是編輯）', () => {
+    expect(snapshot(f({ audience: [1, 2, 3] }))).toBe(base)
+    expect(snapshot(f({ audience: [2, 3, 1] }))).toBe(base)
   })
 })
 

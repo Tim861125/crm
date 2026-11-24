@@ -114,9 +114,14 @@ async function removeStage(stage: ContactStage) {
         @submit.prevent="addStage"
       >
         <div class="grow-input">
+          <!-- placeholder 不是可靠的 accessible name（填入即消失）：改真實 <label>（SR-only 不動版面） -->
+          <label
+            class="sr-only"
+            for="stage-new-name"
+          >新階段名稱</label>
           <RInput
+            id="stage-new-name"
             v-model="newStage"
-            aria-label="新階段名稱"
             placeholder="新階段名稱…"
             @keydown.enter.prevent="addStage"
           />
@@ -141,9 +146,14 @@ async function removeStage(stage: ContactStage) {
           >
             {{ i + 1 }}
           </RBadge>
+          <!-- 同新增列：真實 <label>（含階段名，list 逐列朗讀時才知道改到哪一列） -->
+          <label
+            class="sr-only"
+            :for="`stage-rename-${s.id}`"
+          >階段名稱：{{ s.label }}</label>
           <RInput
+            :id="`stage-rename-${s.id}`"
             :model-value="stageDrafts[s.id] ?? s.label"
-            :aria-label="`階段名稱：${s.label}`"
             @update:model-value="v => (stageDrafts[s.id] = String(v))"
             @blur="commitRename(s)"
             @keydown.enter.prevent="commitRename(s)"

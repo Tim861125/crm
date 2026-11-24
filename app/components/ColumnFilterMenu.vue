@@ -28,9 +28,10 @@ function clear() {
 
 <template>
   <PopoverRoot v-model:open="open">
+    <!-- 「已套用篩選」折進 aria-label：aria-label 整串取代按鈕由內文計算的可及名稱，內層 sr-only 文字不會被朗讀 -->
     <PopoverTrigger
       as-child
-      :aria-label="`以「${props.label}」篩選（可多選）`"
+      :aria-label="`以「${props.label}」篩選（可多選）${props.active ? '，已套用篩選' : ''}`"
     >
       <button
         type="button"

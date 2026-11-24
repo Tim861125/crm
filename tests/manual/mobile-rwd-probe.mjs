@@ -86,9 +86,15 @@ async function visibleSelector(sel) {
   return h.asElement()
 }
 
-async function clickVisible(sel) {
+// 傳 required 表示「這一步非跑不可」：找不到就大聲失敗中止，絕不靜默跳過放過壞掉的探查
+async function clickVisible(sel, required) {
   const h = await visibleSelector(sel)
   if (!h) {
+    if (required) {
+      console.log(`X 找不到可見的${required}（選擇器 ${sel}）——探查中止，不得靜默跳過`)
+      await browser.close()
+      process.exit(1)
+    }
     console.log(`（無可見 ${sel}，跳過）`)
     return false
   }
@@ -104,10 +110,21 @@ async function visit(url, name) {
   await shot(name)
 }
 
-async function clickText(text) {
-  const el = await page.evaluateHandle(t => [...document.querySelectorAll('button')].find(b => b.textContent.includes(t)), text)
+// 按可見按鈕的可見文字（無障礙文字比 title 等屬性穩）；同 clickVisible，傳 required 就不准靜默跳過
+async function clickText(text, required) {
+  const el = await page.evaluateHandle(t =>
+    [...document.querySelectorAll('button')]
+      .find(b => b.textContent.includes(t) && b.getBoundingClientRect().width > 0), text)
   const h = el.asElement()
-  if (!h) return false
+  if (!h) {
+    if (required) {
+      console.log(`X 找不到可見的「${text}」按鈕——探查中止，不得靜默跳過`)
+      await browser.close()
+      process.exit(1)
+    }
+    console.log(`（無可見「${text}」按鈕，跳過）`)
+    return false
+  }
   await h.click()
   await sleep(900)
   return true
@@ -118,30 +135,31 @@ await visit('daily', 'daily')
 await visit('plans', 'plans')
 
 // 明細 modal（總名單第一列 Info 鈕）
+// 鈕的無障礙名稱是「Info：開啟「X」明細」（WCAG 2.5.3 Label in Name 要求以可見文字 Info 開頭），
+// 舊選擇器 aria-label^="開啟" 已永不命中；改以可及性文字「明細」做包含比對，不怕前綴再變動
 await page.goto(APP, { waitUntil: 'networkidle0', timeout: 60000 })
 await sleep(1200)
-if (await clickVisible('button[aria-label^="開啟"]')) {
-  await report('index_明細modal')
-  await shot('index_明細modal')
-  await page.keyboard.press('Escape')
-  await sleep(500)
-}
-// 階段管理 dialog（手機版進度欄隱藏 → 齒輪鈕不存在於可見列，clickVisible 會跳過）
-if (await clickVisible('button[title="管理進度階段"]')) {
-  await report('index_階段管理modal')
-  await shot('index_階段管理modal')
-  await page.keyboard.press('Escape')
-  await sleep(500)
-}
+await clickVisible('button[aria-label*="明細"]', '明細 modal 開啟鈕（Info）')
+await report('index_明細modal')
+await shot('index_明細modal')
+// 階段管理 dialog：窄屏下進度欄表頭齒輪（col-hide-sm）根本不可見，舊選擇器 title="管理進度階段"
+// 在手機寬度永遠落空；手機版唯一入口是明細列尾新增的「管理進度階段」鈕——改點它，
+// 測的才是手機用戶真正摸得到的那條路徑
+await clickText('管理進度階段', '明細列尾「管理進度階段」鈕')
+await report('index_階段管理modal')
+await shot('index_階段管理modal')
+await page.keyboard.press('Escape') // 收階段管理 dialog
+await sleep(500)
+await page.keyboard.press('Escape') // 收明細 modal
+await sleep(500)
 // 計畫編輯 dialog
 await page.goto(APP + 'plans', { waitUntil: 'networkidle0', timeout: 60000 })
 await sleep(1200)
-if (await clickText('擬新計畫')) {
-  await report('plans_編輯modal')
-  await shot('plans_編輯modal')
-  await page.keyboard.press('Escape')
-  await sleep(500)
-}
+await clickText('擬新計畫', '「擬新計畫」鈕')
+await report('plans_編輯modal')
+await shot('plans_編輯modal')
+await page.keyboard.press('Escape')
+await sleep(500)
 
 console.log('\n------ pageerror ------')
 for (const e of errors) console.log(e)

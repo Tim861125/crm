@@ -12,7 +12,9 @@ useSeoMeta({ title: '制定計畫' })
 
 const today = todayStr()
 
-const { data: plans, status, refresh: refreshPlans } = useFetch<PlanWithStats[]>('/api/plans', { default: () => [] })
+// error 一定要接出來：不接的話抓取失敗時 plans 是空的 []，畫面會顯示成
+// 「還沒有計畫」，把服務異常誤當成用戶真的還沒建計畫。失敗分支另有「重新整理」。
+const { data: plans, status, error: plansError, refresh: refreshPlans } = useFetch<PlanWithStats[]>('/api/plans', { default: () => [] })
 const { data: contacts } = useFetch<Contact[]>('/api/contacts', { default: () => [] })
 
 const editorOpen = ref(false)
@@ -30,6 +32,8 @@ const { flash } = useNotice()
 const { confirm } = useConfirm()
 
 // 狀態一鍵流轉：PATCH 單欄，成功後重抓（stats 也隨之更新）
+// busyIds 一併傳給 PlanCard：請求進行中把該卡的流轉鈕 disabled＋aria-busy，
+// 不然按下去到 refreshPlans 完成前畫面毫無反應，看起來像按鈕壞掉（也會連點重複打 PATCH）
 const busyIds = ref<Set<number>>(new Set())
 async function setStatus(plan: PlanWithStats, next: PlanStatus) {
   if (busyIds.value.has(plan.id)) return
@@ -90,6 +94,7 @@ async function remove(plan: PlanWithStats) {
         :plan="p"
         :contacts="contacts || []"
         :today="today"
+        :busy="busyIds.has(p.id)"
         @edit="openEdit"
         @status="setStatus"
         @remove="remove"
@@ -99,6 +104,20 @@ async function remove(plan: PlanWithStats) {
     <RCard v-else-if="status === 'pending'">
       <div class="empty-state">
         載入中…
+      </div>
+    </RCard>
+
+    <!-- 抓取失敗與「還沒有計畫」是兩件事：要讓人看見失敗也能重抓（比照 ContactList 的失敗分支） -->
+    <RCard v-else-if="plansError">
+      <div class="empty-state">
+        計畫載入失敗
+        <button
+          type="button"
+          class="link-button"
+          @click="refreshPlans().catch(() => {})"
+        >
+          重新整理
+        </button>
       </div>
     </RCard>
 

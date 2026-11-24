@@ -15,7 +15,8 @@ await new Promise(r => setTimeout(r, 1500))
 
 const r = await page.evaluate(() => {
   const wrap = document.querySelector('.list-scroll')
-  const info = document.querySelector('button[aria-label^="開啟"]')
+  // 無障礙名稱是「Info：開啟「X」明細」（WCAG 2.5.3 以可見文字 Info 開頭），舊的 ^="開啟" 前綴永不命中
+  const info = document.querySelector('button[aria-label*="明細"]')
   const heads = [...document.querySelectorAll('.list-scroll thead th')].filter(th => getComputedStyle(th).display !== 'none')
   return {
     vw: document.documentElement.clientWidth,

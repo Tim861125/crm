@@ -21,7 +21,9 @@ const emit = defineEmits<{ detail: [contact: Contact] }>()
 
 const { flash } = useNotice()
 
-const { data: contacts, status, refresh: refreshContacts } = useFetch<Contact[]>('/api/contacts', { default: () => [] })
+// error 一定要接出來：不接的話抓取失敗時 contacts 是空的 []，下面會顯示成
+// 「今天沒有該跟進的名單」，把服務異常誤當成今天很閒（比照 ContactList 的失敗分支）
+const { data: contacts, status, error: contactsError, refresh: refreshContacts } = useFetch<Contact[]>('/api/contacts', { default: () => [] })
 
 // 頁面 tick 變動（明細 modal 儲存後）→ 重抓
 watch(() => props.tick, () => refreshContacts())
@@ -148,6 +150,19 @@ const visible = computed(() =>
   <RCard v-else-if="status === 'pending'">
     <div class="empty-state">
       載入中…
+    </div>
+  </RCard>
+
+  <RCard v-else-if="contactsError">
+    <div class="empty-state">
+      名單載入失敗
+      <button
+        type="button"
+        class="link-button"
+        @click="refreshContacts().catch(() => {})"
+      >
+        重新整理
+      </button>
     </div>
   </RCard>
 
