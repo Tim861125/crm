@@ -1,6 +1,9 @@
 import { sql } from 'drizzle-orm'
 import { getDbPath, openDatabase, type CrmDatabase } from './migrate'
 
+// getDb() 的回型別即為此型別：import 不具再匯出效果，需明確轉出，../db 的使用者才不用繞道 migrate 檔取型別
+export type { CrmDatabase }
+
 let singleton: CrmDatabase | null = null
 
 // 取得 drizzle ORM 實例（首次呼叫時開檔並套用遷移）

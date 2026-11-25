@@ -22,6 +22,7 @@ import {
   todayStr,
   type Contact,
   type ContactColumnFilters,
+  type ContactLocation,
   type ContactStage,
   type FollowUpLog
 } from '../utils/crm'
@@ -30,9 +31,9 @@ const { flash } = useNotice()
 const { confirm } = useConfirm()
 
 // ── 資料 ─────────────────────────────────────────────────────
-const { data: contacts, status: contactsStatus, error: contactsError, refresh: refreshContacts } = useFetch('/api/contacts', { default: () => [] })
+const { data: contacts, status: contactsStatus, error: contactsError, refresh: refreshContacts } = useFetch<Contact[]>('/api/contacts', { default: () => [] })
 const { data: stages, refresh: refreshStages } = useFetch('/api/contact-stages', { default: () => [] })
-const { data: locations, refresh: refreshLocations } = useFetch('/api/contact-locations', { default: () => [] })
+const { data: locations, refresh: refreshLocations } = useFetch<ContactLocation[]>('/api/contact-locations', { default: () => [] })
 const { data: methods, refresh: refreshMethods } = useFetch('/api/contact-methods', { default: () => [] })
 
 // ── 搜尋與欄位篩選 ───────────────────────────────────────────

@@ -3,7 +3,7 @@ import RBadge from '../components/rough/RBadge.vue'
 import RButton from '../components/rough/RButton.vue'
 import RDialog from '../components/rough/RDialog.vue'
 import RInput from '../components/rough/RInput.vue'
-import { api } from '../utils/crm'
+import { api, type ContactStage } from '../utils/crm'
 // 進度階段管理 dialog：新增／改名／排序／刪除。
 // （地點選項已改在 RCombobox 編輯下拉內直接增刪，見 ContactList.vue）
 const open = defineModel<boolean>('open', { default: false })
@@ -23,7 +23,7 @@ async function afterMutation(refresh: () => Promise<unknown>) {
   await refresh()
   emit('refresh')
 }
-const { data: stages, refresh: refreshStages } = useFetch('/api/contact-stages', { default: () => [] })
+const { data: stages, refresh: refreshStages } = useFetch<ContactStage[]>('/api/contact-stages', { default: () => [] })
 
 watch(open, (v) => {
   if (v) refreshStages()

@@ -17,6 +17,5 @@ export default defineEventHandler(async (event) => {
   const allLogs = await db.select({ contactId: followUpLogs.contactId, date: followUpLogs.date }).from(followUpLogs)
   const today = todayStr()
 
-  // db 型別受既有 CrmDatabase 匯出問題影響會退為 any，這裡明確標註避免新增 implicit any
-  return rows.map((p: typeof plans.$inferSelect) => ({ ...p, stats: planStats(p, allContacts, allLogs, today) }))
+  return rows.map(p => ({ ...p, stats: planStats(p, allContacts, allLogs, today) }))
 })
